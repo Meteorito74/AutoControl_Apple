@@ -719,19 +719,19 @@ function iniciarAsistenteNuevoVehiculo() {
 
     const km = parseFloat(prompt("Introduce los kilómetros iniciales:"));
     if (isNaN(km)) {
-        alert("El kilometraje debe ser un número.");
+        mostrarNotificacion("El kilometraje debe ser un número.");
         return;
     }
 
     const capacidad = parseFloat(prompt("Introduce la capacidad del depósito (en litros):"));
     if (isNaN(capacidad)) {
-        alert("La capacidad debe ser un número.");
+        mostrarNotificacion("La capacidad debe ser un número.");
         return;
     }
 
     // 2. Lógica para guardar el nuevo vehículo en tu base de datos
     if (baseDatos[nombre]) {
-        alert("Ya existe un vehículo con ese nombre.");
+        mostrarNotificacion("Ya existe un vehículo con ese nombre.");
         return;
     }
 
@@ -753,7 +753,7 @@ function iniciarAsistenteNuevoVehiculo() {
     actualizarSelectorVehiculos();
     cargarDatosVehiculo();
     
-    alert("Vehículo '" + nombre + "' creado correctamente.");
+    mostrarNotificacion("Vehículo '" + nombre + "' creado correctamente.");
 }
 
 
@@ -855,14 +855,14 @@ function editarDatosVehiculo() {
     const capNum = parseFloat(nuevaCapacidad);
 
     if (isNaN(kmNum) || isNaN(capNum)) {
-        alert("Por favor, introduce valores numéricos válidos.");
+        mostrarNotificacion("Por favor, introduce valores numéricos válidos.");
         return;
     }
 
     // Si el nombre cambió, reestructuramos el objeto en la base de datos
     if (nuevoNombre !== vehiculoActivo) {
         if (baseDatos[nuevoNombre]) {
-            alert("Ya existe un vehículo con ese nombre.");
+            mostrarNotificacion("Ya existe un vehículo con ese nombre.");
             return;
         }
         baseDatos[nuevoNombre] = baseDatos[vehiculoActivo];
@@ -998,7 +998,7 @@ function renombrarVehiculo() {
     
     if (nuevoNombre && nuevoNombre !== nombreActual) {
         if (baseDatos[nuevoNombre]) {
-            alert("Ya existe un vehículo con ese nombre.");
+            mostrarNotificacion("Ya existe un vehículo con ese nombre.");
             return;
         }
         // Crear nueva entrada y borrar la vieja
@@ -1016,7 +1016,7 @@ function renombrarVehiculo() {
 
 function eliminarVehiculo() {
     if (Object.keys(baseDatos).length <= 1) {
-        alert("No puedes eliminar el único vehículo disponible.");
+        mostrarNotificacion("No puedes eliminar el único vehículo disponible.");
         return;
     }
     
@@ -1077,7 +1077,7 @@ function eliminarVehiculo() {
         const nombre = document.getElementById('nuevaGasolineraNombre').value.trim();
         if (!nombre) return;
         if (gasolineras.includes(nombre)) {
-            alert("Esta gasolinera ya está registrada.");
+            mostrarNotificacion("Esta gasolinera ya está registrada.");
             return;
         }
         gasolineras.push(nombre);
@@ -1122,7 +1122,7 @@ function eliminarVehiculo() {
     const capNum = parseFloat(capacidad);
     
     if (baseDatos[nombre]) {
-        alert("Ya existe un vehículo con ese nombre.");
+        mostrarNotificacion("Ya existe un vehículo con ese nombre.");
         return;
     }
 
@@ -1195,7 +1195,7 @@ function guardarKmActuales() {
     hoy.setHours(0, 0, 0, 0); 
 
     if (fechaITVInput && new Date(fechaITVInput) < hoy) {
-        alert("La fecha de la ITV no puede ser anterior a hoy.");
+        mostrarNotificacion("La fecha de la ITV no puede ser anterior a hoy.");
         document.getElementById('planITV').value = ""; // Limpiar campo
         return;
     }
@@ -1314,7 +1314,7 @@ document.getElementById('fuelForm').addEventListener('submit', (e) => {
     
     // 3. Validaciones
     if (kmTotalesOdom <= coche.kmActuales) {
-        alert(`Error: El kilometraje debe ser mayor al actual (${coche.kmActuales} Km).`);
+        mostrarNotificacion(`Error: El kilometraje debe ser mayor al actual (${coche.kmActuales} Km).`);
         return; 
     }
 
@@ -1670,12 +1670,12 @@ function eliminarRegistro(index) {
                     vehiculoActivo = Object.keys(baseDatos)[0] || "MG3Hybrid +";
                     localStorage.setItem('app_vehiculo_activo', vehiculoActivo);
                     inicializar();
-                    alert("¡Datos importados con éxito!");
+                    mostrarNotificacion("¡Datos importados con éxito!");
                 } else {
-                    alert("El archivo JSON no tiene el formato correcto.");
+                    mostrarNotificacion("El archivo JSON no tiene el formato correcto.");
                 }
             } catch (e) {
-                alert("Error al leer el archivo JSON.");
+                mostrarNotificacion("Error al leer el archivo JSON.");
             }
         };
         if(input.files[0]) {
@@ -1740,7 +1740,7 @@ function registrarCambioBateria() {
     const coche = baseDatos[vehiculoActivo];
     const fecha = document.getElementById('fechaCambioBateria').value;
     
-    if (!fecha) { alert("Selecciona una fecha"); return; }
+    if (!fecha) { mostrarNotificacion("Selecciona una fecha"); return; }
     
     if (!coche.historialBateria) coche.historialBateria = [];
     
@@ -1753,7 +1753,7 @@ function registrarCambioBateria() {
     guardarEnStorage();
     actualizarMantenimientoBateria();
 	 cargarDatosVehiculo();
-    alert("Cambio de batería registrado.");
+    mostrarNotificacion("Cambio de batería registrado.");
 }
 
 
@@ -1774,7 +1774,7 @@ function registrarCambioRefrigerante() {
     const coche = baseDatos[vehiculoActivo];
     const fecha = document.getElementById('fechaCambioRefrigerante').value;
     
-    if (!fecha) { alert("Selecciona una fecha"); return; }
+    if (!fecha) { mostrarNotificacion("Selecciona una fecha"); return; }
     
     if (!coche.historialRefrigerante) coche.historialRefrigerante = [];
     
@@ -1786,7 +1786,7 @@ function registrarCambioRefrigerante() {
     guardarEnStorage();
     actualizarMantenimientoRefrigerante();
 	 cargarDatosVehiculo();
-    alert("Cambio de refrigerante registrado.");
+    mostrarNotificacion("Cambio de refrigerante registrado.");
 }
 
 function actualizarMantenimientoRefrigerante() {
@@ -1828,7 +1828,7 @@ function registrarCambioNeumatico() {
     const tipo = document.getElementById('tipoNeumaticoCambio').value;
     const fecha = document.getElementById('fechaCambioNeumatico').value;
     
-    if (!fecha) { alert("Selecciona una fecha"); return; }
+    if (!fecha) { mostrarNotificacion("Selecciona una fecha"); return; }
     
     // Creamos un historial específico por tipo
     const key = (tipo === "Delanteros") ? "historialNeumDel" : "historialNeumTras";
@@ -1839,7 +1839,7 @@ function registrarCambioNeumatico() {
     guardarEnStorage();
     actualizarMantenimientoNeumaticos();
 	 cargarDatosVehiculo();
-    alert(`Cambio de neumáticos ${tipo} registrado.`);
+    mostrarNotificacion(`Cambio de neumáticos ${tipo} registrado.`);
 	cargarDatosVehiculo();
 }
 
