@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-<!DOCTYPE html>
-<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -55,6 +53,41 @@
             margin: 0;
             padding: 20px;
         }
+
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap; /* Permite que salten de línea si la pantalla es muy pequeña */
+    gap: 8px;        /* Espacio entre botones */
+    margin-top: 10px;
+}
+
+/* Ajuste para que los botones tengan un tamaño consistente */
+.button-row .btn {
+    flex: 1;         /* Los botones se reparten el espacio disponible */
+    min-width: 80px; /* Tamaño mínimo para no perder legibilidad */
+    padding: 8px 4px;
+    font-size: 0.8rem;
+}
+
+
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+.modal-content {
+    width: 90%;
+    max-width: 400px;
+    background: var(--card-bg);
+}
+.hidden { display: none !important; }
+
+
 
 
         .container { max-width: 600px; margin: 0 auto; }
@@ -248,10 +281,6 @@
 
 
 
-
-
-
-
 <div id="panelInfo" style="display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); color: var(--text);">
     <h2 style="margin-top: 0; color: var(--primary);">ℹ️ Acerca de AutoControl IA Pro</h2>
     <p style="color: var(--text-muted); font-size: 0.95rem;">
@@ -278,11 +307,8 @@
     <button class="btn-custom" style="margin-top: 25px; width: 100%;" onclick="toggleInfo()">Cerrar Información</button>
 </div>
 
-
-
 <div class="card">
-   
-	 <h2>Vehículo Activo</h2>
+    <h2>Vehículo Activo</h2>
     <div class="form-group">
         <label>Selecciona un vehículo</label>
         <select id="selectorVehiculo" onchange="cambiarVehiculoActivo()"></select>
@@ -291,48 +317,38 @@
         </p>
     </div>
 
-	<div class="flex-group" style="margin-top: 10px;">
-    <button class="btn btn-secondary" style="margin-top:10px;" onclick="toggleForm('nuevoVehiculoForm')">+ Nuevo Vehículo</button>
- 
-   
-        <div id="nuevoVehiculoForm" class="hidden" style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
-            <h3>Datos del Nuevo Vehículo</h3>
-            <div class="form-group">
-                <label>Nombre / Modelo</label>
-                <input type="text" id="nuevoNombre" placeholder="Ej: MG3 Hybrid +">
-            </div>
-            <div class="form-group">
-                <label>Kilómetros Iniciales Actuales</label>
-                <input type="number" id="nuevoKmIniciales" placeholder="Ej: 5.000">
-            </div>
-<div class="form-group">
-    <label>Capacidad del Depósito (Litros)</label>
-    <input type="number" id="nuevoCapacidad" placeholder="Ej: 45">
+    <div class="button-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn btn-secondary" onclick="iniciarAsistenteNuevoVehiculo()">+ Nuevo</button>
+        <button class="btn btn-secondary" onclick="renombrarVehiculo()">✏️ Renombrar</button>
+        <button class="btn btn-secondary" onclick="editarDatosVehiculo()">⚙️ Editar</button>
+        <button class="btn btn-danger" onclick="eliminarVehiculo()">🗑️ Eliminar</button>
+    </div>
 </div>
 
-            <div class="form-group">
-                <label>Próximo Aceite (Km)</label>
-                <input type="number" id="nuevoProxAceite" placeholder="Ej: 10.000">
-            </div>
-            <div class="form-group">
-                <label>Próximo Filtro (Km)</label>
-                <input type="number" id="nuevoProxFiltro" placeholder="Ej: 15.000">
-            </div>
-            <div class="form-group">
-                <label>Próximo cambio de Correas (Km)</label>
-                <input type="number" id="nuevoProxRevision" placeholder="Ej: 100.000">
-            </div>
-            <button class="btn" onclick="crearVehiculo()">Guardar Vehículo</button>
+<div id="nuevoVehiculoForm" class="hidden modal-overlay">
+    <div class="modal-content card">
+        <h3>Datos del Nuevo Vehículo</h3>
+        <div class="form-group">
+            <label>Nombre / Modelo</label>
+            <input type="text" id="nuevoNombre" placeholder="Ej: MG3 Hybrid +">
+        </div>
+        <div class="form-group">
+            <label>Kilómetros Iniciales</label>
+            <input type="number" id="nuevoKmIniciales" placeholder="Ej: 5000">
+        </div>
+        <div class="form-group">
+            <label>Capacidad (Litros)</label>
+            <input type="number" id="nuevoCapacidad" placeholder="Ej: 45">
+        </div>
+        <div class="button-row">
+            <button class="btn" onclick="guardarNuevoVehiculo()">Guardar</button>
+            <button class="btn btn-secondary" onclick="toggleForm('nuevoVehiculoForm')">Cancelar</button>
         </div>
     </div>
-        <button class="btn btn-secondary" onclick="renombrarVehiculo()">✏️ Renombrar</button>
+</div>
 
 
-    <button class="btn btn-secondary" onclick="editarDatosVehiculo()">⚙️ Editar Datos</button>
 
-
-        <button class="btn btn-danger" style="background:var(--danger); color:white;" onclick="eliminarVehiculo()">🗑️ Eliminar</button>
-      
 
     <div class="card">
         <h2>Mantenimiento Vehículo</h2>
@@ -414,16 +430,6 @@
 <div class="maint-item" style="text-align: left;">
     <div>
         <strong>Revisión General</strong><br>
-        <small id="maintRevisionGenText">Cargando...</small>
-    </div>
-    <span id="statusRevisionGen" class="badge">---</span>
-</div>
-
-		
-		
-		<div class="maint-item">
-    <div>
-        <strong>Revisión General</strong>
         <small id="maintRevisionGenText">Cargando...</small>
     </div>
     <span id="statusRevisionGen" class="badge">---</span>
@@ -669,39 +675,113 @@
 
 
 
+
+
 <script>
 
 
+
+function iniciarAsistenteNuevoVehiculo() {
+    // 1. Pedir datos mediante prompts (paso a paso)
+    const nombre = prompt("Introduce el nombre o modelo del nuevo vehículo:");
+    if (!nombre) return; // Si cancela, salimos
+
+    const km = parseFloat(prompt("Introduce los kilómetros iniciales:"));
+    if (isNaN(km)) {
+        alert("El kilometraje debe ser un número.");
+        return;
+    }
+
+    const capacidad = parseFloat(prompt("Introduce la capacidad del depósito (en litros):"));
+    if (isNaN(capacidad)) {
+        alert("La capacidad debe ser un número.");
+        return;
+    }
+
+    // 2. Lógica para guardar el nuevo vehículo en tu base de datos
+    if (baseDatos[nombre]) {
+        alert("Ya existe un vehículo con ese nombre.");
+        return;
+    }
+
+    baseDatos[nombre] = {
+        kmActuales: km,
+        capacidadDeposito: capacidad,
+        proxAceite: 0,
+        proxFiltro: 0,
+        proxRevision: 0,
+        registros: []
+    };
+
+    // 3. Actualizar el estado y la interfaz
+    vehiculoActivo = nombre;
+    localStorage.setItem('app_vehiculo_activo', vehiculoActivo);
+    
+    // Asumiendo que tienes estas funciones definidas en tu proyecto:
+    guardarEnStorage(); 
+    actualizarSelectorVehiculos();
+    cargarDatosVehiculo();
+    
+    alert("Vehículo '" + nombre + "' creado correctamente.");
+}
+
+
+
+
+
+
+
+
+// Estructura lógica para capturar los datos adicionales
+function renderizarFormularioEdicion(coche) {
+    // Esto es lo que inyectarías en tu contenedor de edición
+    return `
+        <div class="form-group">
+            <label>Nombre del Vehículo:</label>
+            <input type="text" id="editNombre" value="${coche.nombre}">
+            
+            <label>Kilometraje Actual:</label>
+            <input type="number" id="editKm" value="${coche.kmActuales}">
+            
+            <label>Capacidad Depósito (L):</label>
+            <input type="number" id="editCapacidad" value="${coche.capacidadDeposito || ''}">
+            
+            <hr>
+            <h4>Mantenimientos (Sincronizados)</h4>
+            <label>Próxima ITV:</label>
+            <input type="date" id="editFechaITV" value="${coche.fechaITV || ''}">
+            
+            <label>Prox. Cambio Aceite (Km):</label>
+            <input type="number" id="editProxAceite" value="${coche.proxAceite || ''}">
+            
+            <label>Prox. Cambio Filtro (Km):</label>
+            <input type="number" id="editProxFiltro" value="${coche.proxFiltro || ''}">
+            
+            <label>Prox. Revisión General (Km):</label>
+            <input type="number" id="editProxRevision" value="${coche.proxRevision || ''}">
+        </div>
+    `;
+}
+
+
+
 function toggleAyuda() {
     const panelA = document.getElementById('panelAyuda');
     const panelI = document.getElementById('panelInfo');
-    panelI.style.display = 'none'; // Cierra el otro si abres este
+    
+    panelI.style.display = 'none'; // Asegura que el otro panel esté oculto
     panelA.style.display = (panelA.style.display === 'none' || panelA.style.display === '') ? 'block' : 'none';
 }
 
+
 function toggleInfo() {
     const panelI = document.getElementById('panelInfo');
     const panelA = document.getElementById('panelAyuda');
-    panelA.style.display = 'none'; // Cierra el otro si abres este
+    
+    panelA.style.display = 'none'; // Asegura que el otro panel esté oculto
     panelI.style.display = (panelI.style.display === 'none' || panelI.style.display === '') ? 'block' : 'none';
 }
 
-
-
-function toggleInfo() {
-    const panel = document.getElementById('panelInfo');
-    panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'block' : 'none';
-}
-
-
-function toggleAyuda() {
-    const panel = document.getElementById('panelAyuda');
-    if (panel.style.display === 'none' || panel.style.display === '') {
-        panel.style.display = 'block';
-    } else {
-        panel.style.display = 'none';
-    }
-}
 
 
 function editarDatosVehiculo() {
@@ -940,25 +1020,6 @@ function eliminarVehiculo() {
 
 
 
-function toggleForm(id) {
-    const form = document.getElementById(id);
-    form.classList.toggle('hidden');
-    
-    // Si lo estamos abriendo, aseguramos que los valores sean los actuales
-    if (!form.classList.contains('hidden')) {
-        cargarDatosVehiculo(); 
-        
-        // Detectar si es iOS para evitar el salto automático
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        
-        if (!isIOS) {
-            const primerInput = form.querySelector('input');
-            if (primerInput) primerInput.focus();
-        }
-    }
-}
-
-
 
     function crearGasolinera() {
         const nombre = document.getElementById('nuevaGasolineraNombre').value.trim();
@@ -992,53 +1053,46 @@ function toggleForm(id) {
 
 
     function crearVehiculo() {
-        const nombre = document.getElementById('nuevoNombre').value.trim();
-        const kmInici = 
-parseFloat(document.getElementById('nuevoKmIniciales').value) || 0;
-		const capacidad = parseFloat(document.getElementById('nuevoCapacidad').value) || 0;
-        const pAceite = parseFloat(document.getElementById('nuevoProxAceite').value) || 0;
-        const pFiltro = parseFloat(document.getElementById('nuevoProxFiltro').value) || 0;
-        const pRevision = parseFloat(document.getElementById('nuevoProxRevision').value) || 0;
+    // 1. Pedir datos uno a uno
+    const nombre = prompt("Nombre / Modelo del nuevo vehículo:");
+    if (!nombre) return; // Cancelado
+
+    const kmInici = prompt("Kilómetros iniciales actuales:");
+    if (kmInici === null) return;
+
+    const capacidad = prompt("Capacidad del depósito (Litros):");
+    if (capacidad === null) return;
 
 
-    if (!nombre) { alert("Nombre obligatorio"); return; }
-    if (isNaN(kmInici) || kmInici < 0) { 
-        alert("Introduce un kilometraje inicial válido (mayor o igual a 0)."); 
-        return; 
+
+    // 2. Validación de datos numéricos
+    const kmNum = parseFloat(kmInici);
+    const capNum = parseFloat(capacidad);
+    
+    if (baseDatos[nombre]) {
+        alert("Ya existe un vehículo con ese nombre.");
+        return;
     }
 
-        if (!nombre) { alert("Nombre inválido."); return; }
-        if (baseDatos[nombre]) { alert("El vehículo ya existe."); return; }
+    // 3. Guardar en la base de datos
+    baseDatos[nombre] = {
+        kmActuales: kmNum,
+        capacidadDeposito: capNum,
+        proxAceite: 0,
+        proxFiltro: 0,
+        proxRevision: 0,
+        historialBateria: [],
+        registros: []
+    };
 
-
-
-
-        baseDatos[nombre] = {
-            kmActuales: kmInici,
-            proxAceite: pAceite,
-            proxFiltro: pFiltro,
-            proxRevision: pRevision,
-				capacidadDeposito: capacidad,
-				historialBateria: [],
-    			diasSemana: 5,
-   			kmDiarios: 0,
-           registros: []
-        };
-        vehiculoActivo = nombre;
-        
-        guardarEnStorage();
-        actualizarSelectorVehiculos();
-        cargarDatosVehiculo();
-        
-        document.getElementById('nuevoNombre').value = '';
-        document.getElementById('nuevoKmIniciales').value = '';
-        document.getElementById('nuevoProxAceite').value = '';
-        document.getElementById('nuevoProxFiltro').value = '';
-        document.getElementById('nuevoProxRevision').value = '';
-        toggleForm('nuevoVehiculoForm');
-    }
-
-
+    vehiculoActivo = nombre;
+    localStorage.setItem('app_vehiculo_activo', vehiculoActivo);
+    
+    guardarEnStorage();
+    actualizarSelectorVehiculos();
+    cargarDatosVehiculo();
+    mostrarNotificacion("Vehículo '" + nombre + "' creado correctamente");
+}
 
 
     function actualizarSelectorVehiculos() {
@@ -1106,42 +1160,34 @@ function guardarKmActuales() {
     }
 
 
-
 function cargarDatosVehiculo() {
     const coche = baseDatos[vehiculoActivo];
-    if (!coche) return;
-
-    // ... (tus otros códigos existentes)
-
-    // AÑADE ESTAS LÍNEAS AQUÍ:
-    actualizarMantenimientoBateria(); 
-    actualizarMantenimientoRefrigerante();
-    actualizarMantenimientoNeumaticos();
     
-    // ... (resto de funciones)
-}
+    // 1. Verificación: Si no hay coche, salimos de la función inmediatamente.
+    if (!coche) {
+        console.warn("No se encontró el vehículo activo:", vehiculoActivo);
+        return; 
+    }
 
+    // 2. A partir de aquí, el código solo se ejecuta si "coche" existe.
+    // Usamos el operador de encadenamiento opcional o valores por defecto para mayor seguridad.
+    
+    const elKm = document.getElementById('kmOdom');
+    if (elKm) elKm.value = coche.kmActuales;
+    
+    const displayKm = document.getElementById('displayKmActuales');
+    if (displayKm) displayKm.textContent = coche.kmActuales.toLocaleString();
 
-
-
-
-
-    function cargarDatosVehiculo() {
-        const coche = baseDatos[vehiculoActivo];
-        if (!coche) return;
-    document.getElementById('kmOdom').value = coche.kmActuales;
-    document.getElementById('displayKmActuales').textContent = coche.kmActuales.toLocaleString();
-
-
+    // Actualización de inputs de mantenimiento
     document.getElementById('planITV').value = coche.fechaITV || ''; 
-	 document.getElementById('planRevisionGeneral').value = coche.proxRevisionGen || 0;
-	 document.getElementById('planAceite').value = coche.proxAceite || 0;
+    document.getElementById('planRevisionGeneral').value = coche.proxRevisionGen || 0;
+    document.getElementById('planAceite').value = coche.proxAceite || 0;
     document.getElementById('planFiltro').value = coche.proxFiltro || 0;
     document.getElementById('planRevision').value = coche.proxRevision || 0;
-	 document.getElementById('diasSemana').value = coche.diasSemana || 5;
+    document.getElementById('diasSemana').value = coche.diasSemana || 5;
     document.getElementById('kmDiarios').value = coche.kmDiarios || 0;
 
-
+    // 3. Ejecución de funciones de refresco
     actualizarMantenimientoBateria(); 
     actualizarMantenimientoRefrigerante();
     actualizarMantenimientoNeumaticos();
@@ -1150,9 +1196,8 @@ function cargarDatosVehiculo() {
     calcularEstadoITV(coche.fechaITV);
     calcularAutonomia();
     calcularGastoDesplazamiento();
-	 actualizarMantenimientoBateria(); 
+}
 
-    }
 
 
 
@@ -1252,6 +1297,12 @@ document.getElementById('fuelForm').addEventListener('submit', (e) => {
     calcularMantenimiento();
     calcularAutonomia();
     calcularGastoDesplazamiento();
+
+
+	actualizarMantenimientoBateria();
+   actualizarMantenimientoRefrigerante();
+   actualizarMantenimientoNeumaticos();
+
 });
 
 
@@ -1599,26 +1650,6 @@ function eliminarRegistro(index) {
         if (el) el.textContent = `${autonomia.toFixed(0)} Km`;
     }
 
-function eliminarRegistro(index) {
-    const coche = baseDatos[vehiculoActivo];
-    if (!coche) return;
-
-    if (confirm("¿Estás seguro de que deseas eliminar este registro de repostaje?")) {
-        // Eliminar el registro del array usando el índice
-        coche.registros.splice(index, 1);
-        
-        // Guardar los cambios
-        guardarEnStorage();
-        
-        // Actualizar la interfaz para reflejar el cambio
-        actualizarTablayStats();
-        calcularMantenimiento();
-        calcularAutonomia();
-        calcularGastoDesplazamiento();
-        
-        mostrarNotificacion("Registro eliminado correctamente");
-    }
-}
 
 
 function actualizarMantenimientoBateria() {
@@ -1669,26 +1700,15 @@ function registrarCambioBateria() {
     
     guardarEnStorage();
     actualizarMantenimientoBateria();
+	 cargarDatosVehiculo();
     alert("Cambio de batería registrado.");
 }
 
-function guardarDesplazamientoEnBD() {
-    const coche = baseDatos[vehiculoActivo];
-    if (!coche) return;
-    
-    // Guardamos los valores de los inputs en el objeto del vehículo
-    coche.diasSemana = parseFloat(document.getElementById('diasSemana').value) || 0;
-    coche.kmDiarios = parseFloat(document.getElementById('kmDiarios').value) || 0;
-    
-    // Persistimos en localStorage
-    guardarEnStorage();
-}
 
 function guardarDesplazamientoEnBD() {
     const coche = baseDatos[vehiculoActivo];
     if (!coche) return;
     
-    // Guardamos los valores de los inputs en el objeto del vehículo
     coche.diasSemana = parseFloat(document.getElementById('diasSemana').value) || 0;
     coche.kmDiarios = parseFloat(document.getElementById('kmDiarios').value) || 0;
     
@@ -1713,6 +1733,7 @@ function registrarCambioRefrigerante() {
     
     guardarEnStorage();
     actualizarMantenimientoRefrigerante();
+	 cargarDatosVehiculo();
     alert("Cambio de refrigerante registrado.");
 }
 
@@ -1765,7 +1786,9 @@ function registrarCambioNeumatico() {
     
     guardarEnStorage();
     actualizarMantenimientoNeumaticos();
+	 cargarDatosVehiculo();
     alert(`Cambio de neumáticos ${tipo} registrado.`);
+	cargarDatosVehiculo();
 }
 
 
@@ -1815,35 +1838,58 @@ function actualizarMantenimientoNeumaticos() {
 }
 
 
-// 1. Limpia tus addEventListener al final del script y deja solo este:
+
 window.addEventListener('DOMContentLoaded', () => {
+    // Si ya habías definido el tema oscuro, cargamos la preferencia
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
     inicializar();
     actualizarReloj();
     setInterval(actualizarReloj, 1000);
 });
 
-// 2. Función toggle mejorada para asegurar que carga datos al abrir
+// 2. Función toggleForm única (gestiona visibilidad de formularios)
 function toggleForm(id) {
     const form = document.getElementById(id);
+    if (!form) return;
     form.classList.toggle('hidden');
-    
-    // Si lo estamos abriendo, aseguramos que los valores sean los actuales
     if (!form.classList.contains('hidden')) {
-        cargarDatosVehiculo(); // Esto rellena los inputs con los datos de la BD
+        cargarDatosVehiculo(); 
         const primerInput = form.querySelector('input');
         if (primerInput) primerInput.focus();
     }
 }
 
-// 3. Elimina la función duplicada de 'guardarDesplazamientoEnBD' 
-// y deja solo una versión limpia:
-function guardarDesplazamientoEnBD() {
+// 3. Función eliminarRegistro única (gestiona borrado y odómetro)
+function eliminarRegistro(index) {
     const coche = baseDatos[vehiculoActivo];
-    if (!coche) return;
-    coche.diasSemana = parseFloat(document.getElementById('diasSemana').value) || 0;
-    coche.kmDiarios = parseFloat(document.getElementById('kmDiarios').value) || 0;
-    guardarEnStorage();
+    if (!coche || !coche.registros[index]) return;
+
+    if (confirm("¿Estás seguro de que deseas eliminar este registro de repostaje?")) {
+        if (index === 0) {
+            const reg = coche.registros[0];
+            coche.kmActuales = Math.max(0, coche.kmActuales - reg.kmHechos);
+        }
+        coche.registros.splice(index, 1);
+        guardarEnStorage();
+        actualizarTablayStats();
+        calcularMantenimiento();
+        calcularAutonomia();
+        calcularGastoDesplazamiento();
+        mostrarNotificacion("Registro eliminado correctamente");
+    }
 }
+
+// 4. Validación global para evitar números negativos
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('input', function() {
+            if (this.value < 0) this.value = 0;
+        });
+    });
+});
+
 
     
 
