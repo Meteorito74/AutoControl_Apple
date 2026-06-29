@@ -435,169 +435,6 @@ body.dark-mode .alerta-urgente {
 }
 
 
-// AUTOCONTROL IA PRO - SCRIPT DE INTEGRACIÓN UNIFICADO
-document.addEventListener("DOMContentLoaded", () => {
-    
-    // =========================================================================
-    // 1. MÓDULO DEL TECLADO NUMÉRICO TÁCTIL (iPad UX)
-    // =========================================================================
-    const tecladoContainer = document.querySelector(".teclado-container");
-    const inputsNumericos = document.querySelectorAll(".teclado-num-target");
-    const pantallaTeclado = document.querySelector(".teclado-display") || document.getElementById("teclado-display");
-    
-    let campoActual = null; // Almacena el input que invocó al teclado
-    let valorActualTeclado = ""; // Almacena el búfer temporal de escritura
-
-    // Función para desplegar el teclado con animación de entrada fluida (App Nativa)
-    function abrirTeclado(inputTarget) {
-        campoActual = inputTarget;
-        // Cargamos el valor actual que tenga el input (si ya tiene alguno)
-        valorActualTeclado = inputTarget.value || "";
-        actualizarPantallaTeclado();
-        
-        // Activamos visualmente el contenedor
-        tecladoContainer.style.display = "block";
-        
-        // Pequeño retraso para asegurar que el navegador registre el display antes de la animación CSS
-        setTimeout(() => {
-            tecladoContainer.style.opacity = "1";
-            tecladoContainer.style.transform = "translateY(0)";
-        }, 10);
-    }
-
-    // Función para cerrar el teclado con animación de deslizamiento hacia la base
-    function cerrarTeclado() {
-        tecladoContainer.style.opacity = "0";
-        tecladoContainer.style.transform = "translateY(50px)";
-        
-        // Esperamos a que termine la transición CSS (300ms) antes de ocultar con display: none
-        setTimeout(() => {
-            tecladoContainer.style.display = "none";
-            campoActual = null;
-        }, 300);
-    }
-
-    // Actualiza la visualización interna del teclado antes de volcar al formulario
-    function actualizarPantallaTeclado() {
-        if (pantallaTeclado) {
-            pantallaTeclado.textContent = valorActualTeclado || "0";
-        }
-    }
-
-    // Vinculamos el evento de apertura a los inputs configurados como readonly
-    inputsNumericos.forEach(input => {
-        input.addEventListener("click", (e) => {
-            abrirTeclado(e.target);
-        });
-    });
-
-    // Captura de pulsaciones de los botones del teclado (.teclado-btn)
-    const botonesTeclado = document.querySelectorAll(".teclado-btn");
-    botonesTeclado.forEach(boton => {
-        boton.addEventListener("click", () => {
-            const valorBoton = boton.textContent.trim();
-            
-            // Caso A: Acción de Borrar / Retroceso
-            if (boton.classList.contains("btn-borrar") || valorBoton === "⌫") {
-                valorActualTeclado = valorActualTeclado.slice(0, -1);
-                actualizarPantallaTeclado();
-                return;
-            }
-            
-            // Caso B: Acción de Confirmar y Volcar al Formulario
-            if (boton.classList.contains("btn-confirmar") || valorBoton === "✓") {
-                if (campoActual) {
-                    campoActual.value = valorActualTeclado;
-                    
-                    // Persistencia automática del valor numérico usando el ID o Name del campo
-                    const campoId = campoActual.id || campoActual.name;
-                    if (campoId) {
-                        localStorage.setItem(`autocontrol_${campoId}`, valorActualTeclado);
-                    }
-                    
-                    // Notificar reactivamente al sistema que el campo ha cambiado
-                    campoActual.dispatchEvent(new Event("change"));
-                }
-                cerrarTeclado();
-                return;
-            }
-            
-            // Caso C: Inserción de Dígitos y Reglas de Integridad Estrictas
-            // 1. Límite máximo seguro de hasta 7 caracteres
-            if (valorActualTeclado.length >= 7) return;
-            
-            // 2. Control estricto de un único punto decimal
-            if (valorBoton === "." && valorActualTeclado.includes(".")) return;
-            
-            // 3. Reemplazar el cero inicial por el nuevo dígito si no es un decimal
-            if (valorActualTeclado === "0" && valorBoton !== ".") {
-                valorActualTeclado = valorBoton;
-            } else {
-                valorActualTeclado += valorBoton;
-            }
-            
-            actualizarPantallaTeclado();
-        });
-    });
-
-
-    // =========================================================================
-    // 2. MÓDULO DE PERSISTENCIA DEL CALENDARIO (LocalStorage)
-    // =========================================================================
-    const inputFecha = document.querySelector('input[type="date"]');
-    
-    // Función para renderizar y formatear la fecha con una estética limpia
-    function mostrarFechaFormateada(fechaValor) {
-        const resultadoDiv = document.getElementById("resultado");
-        if (!fechaValor) return;
-
-        const fechaObjeto = new Date(fechaValor);
-        if (!isNaN(fechaObjeto.getTime())) {
-            const opciones = { year: 'numeric', month: 'long', day: 'numeric' };
-            // Convierte "2026-06-29" a "29 de junio de 2026"
-            const fechaFormateada = fechaObjeto.toLocaleDateString('es-ES', opciones);
-            
-            if (resultadoDiv) {
-                resultadoDiv.textContent = `Fecha de Control: ${fechaFormateada}`;
-            }
-        }
-    }
-
-    if (inputFecha) {
-        // Recuperar la fecha guardada previamente al cargar el entorno
-        const fechaGuardada = localStorage.getItem("autocontrol_fecha_calendario");
-        if (fechaGuardada) {
-            inputFecha.value = fechaGuardada;
-            mostrarFechaFormateada(fechaGuardada);
-        }
-
-        // Registrar cambios en el calendario y guardarlos instantáneamente
-        inputFecha.addEventListener("change", (e) => {
-            const nuevaFecha = e.target.value;
-            localStorage.setItem("autocontrol_fecha_calendario", nuevaFecha);
-            mostrarFechaFormateada(nuevaFecha);
-            
-            // Opcional: Validación de Alertas de Caducidad vinculadas a tu CSS
-            // const hoy = new Date().toISOString().split('T')[0];
-            // if (nuevaFecha < hoy) { resultadoDiv.classList.add('alerta-urgente'); }
-        });
-    }
-
-    // =========================================================================
-    // 3. RESTAURACIÓN AUTOMÁTICA DE INPUTS NUMÉRICOS AL INICIAR
-    // =========================================================================
-    inputsNumericos.forEach(input => {
-        const campoId = input.id || input.name;
-        if (campoId) {
-            const valorGuardado = localStorage.getItem(`autocontrol_${campoId}`);
-            if (valorGuardado) {
-                input.value = valorGuardado;
-            }
-        }
-    });
-});
-
-
 
 
     </style>
@@ -739,24 +576,14 @@ document.addEventListener("DOMContentLoaded", () => {
             <label>Nombre / Modelo</label>
             <input type="text" id="nuevoNombre" placeholder="Ej: MG3 Hybrid +">
         </div>
-<div class="form-group">
-    <label>Kilómetros Iniciales</label>
-    <input type="text" 
-           id="nuevoKmIniciales" 
-           class="teclado-num-target" 
-           readonly 
-           placeholder="20.000"
-           onclick="mostrarTeclado(this)"> </div>
-<div class="form-group">
-    <label>Capacidad (Litros)</label>
-    <input type="text" 
-           id="nuevoCapacidad"  
-           class="teclado-num-target" 
-           readonly 
-           placeholder="45"
-           onclick="mostrarTeclado(this)"> 
-</div>
-
+        <div class="form-group">
+            <label>Kilómetros Iniciales</label>
+            <input type="number" id="nuevoKmIniciales" placeholder="Ej: 5000">
+        </div>
+        <div class="form-group">
+            <label>Capacidad (Litros)</label>
+            <input type="number" id="nuevoCapacidad" placeholder="Ej: 45">
+        </div>
         <div class="button-row">
             <button class="btn" onclick="guardarNuevoVehiculo()">Guardar</button>
             <button class="btn btn-secondary" onclick="toggleForm('nuevoVehiculoForm')">Cancelar</button>
@@ -766,13 +593,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+
     <div class="card">
         <h2>Mantenimiento Vehículo</h2>
         <div class="form-group">
             <label>Kilómetros Actuales del Coche (Odómetro)</label>
-            <input type="text" id="kmOdom" placeholder="Ej: 145000" readonly autocomplete="off">
-
-
+            <input type="number" id="kmOdom" placeholder="Ej: 145000" oninput="guardarKmActuales()">
         </div>
         <button class="btn btn-secondary" style="margin-bottom: 12px;" onclick="toggleForm('maintPlanForm')">⚙️ Configurar Mantenimientos</button>
         
@@ -1094,134 +920,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-<div id="teclado-modal" class="teclado-overlay">
-    <div class="teclado-container">
-        <div class="teclado-display" id="teclado-display">0</div>
-        
-        <div class="teclado-grid">
-            <button type="button" class="teclado-btn" onclick="tecladoNum.add('1')">1</button>
-            <button type="button" class="teclado-btn" onclick="tecladoNum.add('2')">2</button>
-            <button type="button" class="teclado-btn" onclick="tecladoNum.add('3')">3</button>
-            
-            <button type="button" class="teclado-btn" onclick="tecladoNum.add('4')">4</button>
-            <button type="button" class="teclado-btn" onclick="tecladoNum.add('5')">5</button>
-            <button type="button" class="teclado-btn" onclick="tecladoNum.add('6')">6</button>
-            
-            <button type="button" class="teclado-btn" onclick="tecladoNum.add('7')">7</button>
-            <button type="button" class="teclado-btn" onclick="tecladoNum.add('8')">8</button>
-            <button type="button" class="teclado-btn" onclick="tecladoNum.add('9')">9</button>
-            
-            <button type="button" class="teclado-btn teclado-btn-danger" onclick="tecladoNum.borrar()">⌫</button>
-            <button type="button" class="teclado-btn" onclick="tecladoNum.add('0')">0</button>
-            <button type="button" class="teclado-btn" onclick="tecladoNum.add('.')">.</button>
-        </div>
-        
-        <div class="teclado-actions">
-            <button type="button" class="btn btn-secondary" onclick="tecladoNum.cerrar()">Cancelar</button>
-            <button type="button" class="btn btn-success" onclick="tecladoNum.confirmar()">Confirmar</button>
-        </div>
-    </div>
-</div>
-
-
-
-
-
-
 
 <script>
-// 1. ESTADO GLOBAL DE LA APLICACIÓN
-const staticVehiculosPredeterminados = {
-    "MG3 Hybrid +": {
-        kmActuales: 5000,
-        proxAceite: 15000,
-        proxFiltro: 15000,
-        proxRevision: 100000,
-        registros: []
-    }
-};
-const gasolinerasPredeterminadas = ["Avanza Oil", "Repsol", "Petrem ECO"];
 
-let baseDatos = JSON.parse(localStorage.getItem('app_combustible_data')) || staticVehiculosPredeterminados;
-let gasolineras = JSON.parse(localStorage.getItem('app_gasolineras_data')) || gasolinerasPredeterminadas;
-let vehiculoActivo = localStorage.getItem('app_vehiculo_activo') || "MG3 Hybrid +";
-let miGrafico = null;
 
-if (!baseDatos[vehiculoActivo]) {
-    vehiculoActivo = Object.keys(baseDatos)[0] || "MG3 Hybrid +";
-}
 
-// 2. INICIALIZACIÓN ÚNICA (Ciclo de Vida Limpio)
-window.addEventListener('DOMContentLoaded', () => {
-    // Cargar preferencia de tema
-    if (localStorage.getItem('theme') === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
-    
-    // Inicializar datos core
-    inicializar();
-    
-    // Configurar reloj único
-    actualizarReloj();
-    setInterval(actualizarReloj, 1000);
-
-    // Validación global para evitar números negativos en inputs estándar
-    document.querySelectorAll('input[type="number"]').forEach(input => {
-        input.addEventListener('input', function() {
-            if (this.value < 0) this.value = 0;
-        });
-    });
-});
-
-function inicializar() {
-    actualizarSelectorVehiculos();
-    actualizarSelectorGasolineras();
-    cargarDatosVehiculo();
-}
-
-// 3. COMPONENTE MODAL: FORMULARIO DE EDICIÓN (Optimizado para Teclado Táctil iPad)
-function renderizarFormularioEdicion(coche) {
-    // Cambiados a type="text" y añadido readonly para ceder el control a tu teclado táctil
-    return `
-        <div class="form-group">
-            <label>Nombre del Vehículo:</label>
-            <input type="text" id="editNombre" value="${coche.nombre || vehiculoActivo}">
-            
-            <label>Kilometraje Actual:</label>
-            <input type="text" readonly class="input-tactil" id="editKm" value="${coche.kmActuales}">
-            
-            <label>Capacidad Depósito (L):</label>
-            <input type="text" readonly class="input-tactil" id="editCapacidad" value="${coche.capacidadDeposito || ''}">
-            
-            <hr>
-            <h4>Mantenimientos (Sincronizados)</h4>
-            <label>Próxima ITV:</label>
-            <input type="date" id="editFechaITV" value="${coche.fechaITV || ''}">
-            
-            <label>Prox. Cambio Aceite (Km):</label>
-            <input type="text" readonly class="input-tactil" id="editProxAceite" value="${coche.proxAceite || ''}">
-            
-            <label>Prox. Cambio Filtro (Km):</label>
-            <input type="text" readonly class="input-tactil" id="editProxFiltro" value="${coche.proxFiltro || ''}">
-            
-            <label>Prox. Revisión General (Km):</label>
-            <input type="text" readonly class="input-tactil" id="editProxRevision" value="${coche.proxRevision || ''}">
-        </div>
-    `;
-}
-
-// 4. LOGICA DE GESTIÓN DE VEHÍCULOS
 function iniciarAsistenteNuevoVehiculo() {
+    // 1. Pedir datos mediante prompts (paso a paso)
     const nombre = prompt("Introduce el nombre o modelo del nuevo vehículo:");
-    if (!nombre) return;
+    if (!nombre) return; // Si cancela, salimos
 
     const km = parseFloat(prompt("Introduce los kilómetros iniciales:"));
-    if (isNaN(km)) { alert("El kilometraje debe ser un número."); return; }
+    if (isNaN(km)) {
+        alert("El kilometraje debe ser un número.");
+        return;
+    }
 
     const capacidad = parseFloat(prompt("Introduce la capacidad del depósito (en litros):"));
-    if (isNaN(capacidad)) { alert("La capacidad debe ser un número."); return; }
+    if (isNaN(capacidad)) {
+        alert("La capacidad debe ser un número.");
+        return;
+    }
 
-    if (baseDatos[nombre]) { alert("Ya existe un vehículo con ese nombre."); return; }
+    // 2. Lógica para guardar el nuevo vehículo en tu base de datos
+    if (baseDatos[nombre]) {
+        alert("Ya existe un vehículo con ese nombre.");
+        return;
+    }
 
     baseDatos[nombre] = {
         kmActuales: km,
@@ -1232,21 +957,79 @@ function iniciarAsistenteNuevoVehiculo() {
         registros: []
     };
 
+    // 3. Actualizar el estado y la interfaz
     vehiculoActivo = nombre;
     localStorage.setItem('app_vehiculo_activo', vehiculoActivo);
     
+    // Asumiendo que tienes estas funciones definidas en tu proyecto:
     guardarEnStorage(); 
     actualizarSelectorVehiculos();
     cargarDatosVehiculo();
+    
     alert("Vehículo '" + nombre + "' creado correctamente.");
 }
+
+
+
+// Estructura lógica para capturar los datos adicionales
+function renderizarFormularioEdicion(coche) {
+    // Esto es lo que inyectarías en tu contenedor de edición
+    return `
+        <div class="form-group">
+            <label>Nombre del Vehículo:</label>
+            <input type="text" id="editNombre" value="${coche.nombre}">
+            
+            <label>Kilometraje Actual:</label>
+            <input type="number" id="editKm" value="${coche.kmActuales}">
+            
+            <label>Capacidad Depósito (L):</label>
+            <input type="number" id="editCapacidad" value="${coche.capacidadDeposito || ''}">
+            
+            <hr>
+            <h4>Mantenimientos (Sincronizados)</h4>
+            <label>Próxima ITV:</label>
+            <input type="date" id="editFechaITV" value="${coche.fechaITV || ''}">
+            
+            <label>Prox. Cambio Aceite (Km):</label>
+            <input type="number" id="editProxAceite" value="${coche.proxAceite || ''}">
+            
+            <label>Prox. Cambio Filtro (Km):</label>
+            <input type="number" id="editProxFiltro" value="${coche.proxFiltro || ''}">
+            
+            <label>Prox. Revisión General (Km):</label>
+            <input type="number" id="editProxRevision" value="${coche.proxRevision || ''}">
+        </div>
+    `;
+}
+
+
+
+function toggleAyuda() {
+    const panelA = document.getElementById('panelAyuda');
+    const panelI = document.getElementById('panelInfo');
+    
+    panelI.style.display = 'none'; // Asegura que el otro panel esté oculto
+    panelA.style.display = (panelA.style.display === 'none' || panelA.style.display === '') ? 'block' : 'none';
+}
+
+
+function toggleInfo() {
+    const panelI = document.getElementById('panelInfo');
+    const panelA = document.getElementById('panelAyuda');
+    
+    panelA.style.display = 'none'; // Asegura que el otro panel esté oculto
+    panelI.style.display = (panelI.style.display === 'none' || panelI.style.display === '') ? 'block' : 'none';
+}
+
+
 
 function editarDatosVehiculo() {
     const coche = baseDatos[vehiculoActivo];
     if (!coche) return;
 
+    // Pedimos los datos al usuario
     const nuevoNombre = prompt("Nombre del vehículo:", vehiculoActivo);
-    if (nuevoNombre === null) return;
+    if (nuevoNombre === null) return; // Si el usuario cancela
 
     const nuevosKm = prompt("Kilometraje actual:", coche.kmActuales);
     if (nuevosKm === null) return;
@@ -1254,6 +1037,7 @@ function editarDatosVehiculo() {
     const nuevaCapacidad = prompt("Capacidad del depósito (Litros):", coche.capacidadDeposito || 0);
     if (nuevaCapacidad === null) return;
 
+    // Validaciones básicas
     const kmNum = parseFloat(nuevosKm);
     const capNum = parseFloat(nuevaCapacidad);
 
@@ -1262,29 +1046,149 @@ function editarDatosVehiculo() {
         return;
     }
 
+    // Si el nombre cambió, reestructuramos el objeto en la base de datos
     if (nuevoNombre !== vehiculoActivo) {
-        if (baseDatos[nuevoNombre]) { alert("Ya existe un vehículo con ese nombre."); return; }
+        if (baseDatos[nuevoNombre]) {
+            alert("Ya existe un vehículo con ese nombre.");
+            return;
+        }
         baseDatos[nuevoNombre] = baseDatos[vehiculoActivo];
         delete baseDatos[vehiculoActivo];
         vehiculoActivo = nuevoNombre;
         localStorage.setItem('app_vehiculo_activo', vehiculoActivo);
     }
 
+    // Actualizamos los datos
     baseDatos[vehiculoActivo].kmActuales = kmNum;
     baseDatos[vehiculoActivo].capacidadDeposito = capNum;
 
+    // Guardar y refrescar interfaz
     guardarEnStorage();
     actualizarSelectorVehiculos();
     cargarDatosVehiculo();
     mostrarNotificacion("Datos del vehículo actualizados");
 }
 
+
+function mostrarNotificacion(mensaje) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = mensaje;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+
+function calcularEstadoITV(fechaITV) {
+    const badge = document.getElementById('statusITV');
+    const text = document.getElementById('maintITVText');
+    
+    if (!fechaITV) return;
+
+    const hoy = new Date();
+    const fecha = new Date(fechaITV);
+    const diffDays = Math.ceil((fecha - hoy) / (1000 * 60 * 60 * 24));
+
+    text.textContent = `Vence el: ${fecha.toLocaleDateString('es-ES')}`;
+
+    // Lógica de alerta
+    if (diffDays < 0) {
+        badge.textContent = `¡ITV Vencida!`;
+        badge.className = "badge alerta-urgente";
+    } else if (diffDays <= 15) {
+        badge.textContent = `¡⚠️ URGENTE: ${diffDays} días!`;
+        badge.className = "badge alerta-urgente";
+    } else {
+        badge.textContent = `Faltan ${diffDays} días`;
+        badge.className = "badge success";
+    }
+}
+
+
+
+function actualizarReloj() {
+    const ahora = new Date();
+    
+    // Formato de fecha y hora local (ES)
+    const opciones = { 
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', 
+        hour: '2-digit', minute: '2-digit', second: '2-digit' 
+    };
+    
+    const fechaTexto = ahora.toLocaleDateString('es-ES', opciones);
+    document.getElementById('fechaHora').textContent = fechaTexto;
+}
+
+// Llamar a la función al iniciar y actualizar cada segundo
+window.addEventListener('DOMContentLoaded', () => {
+    inicializar(); // Tu función existente
+    actualizarReloj();
+    setInterval(actualizarReloj, 1000);
+});
+
+
+function calcularGastoDesplazamiento() {
+    const coche = baseDatos[vehiculoActivo];
+    if (!coche || coche.registros.length === 0) return;
+
+    const dias = parseFloat(document.getElementById('diasSemana').value) || 0;
+    const km = parseFloat(document.getElementById('kmDiarios').value) || 0;
+    
+    // Obtenemos el último precio pagado y el consumo medio histórico
+    const ultimoRegistro = coche.registros[0];
+    const precioLitro = parseFloat(ultimoRegistro.precioLitro);
+    const consumoMedio = parseFloat(ultimoRegistro.consumoMedio); // L/100km
+
+    // Cálculo: (Km diarios / 100) * Consumo * Precio
+    const litrosDia = (km / 100) * consumoMedio;
+    const costeDia = litrosDia * precioLitro;
+
+    // Proyecciones
+    const costeSemana = costeDia * dias;
+    const costeMes = costeSemana * 4.33; // Promedio de semanas al mes
+    const costeAno = costeSemana * 52;
+
+    // Actualizar UI
+    document.getElementById('gastoDia').textContent = `${costeDia.toFixed(2)} €`;
+    document.getElementById('gastoSemana').textContent = `${costeSemana.toFixed(2)} €`;
+    document.getElementById('gastoMes').textContent = `${costeMes.toFixed(2)} €`;
+    document.getElementById('gastoAno').textContent = `${costeAno.toFixed(2)} €`;
+}
+
+    
+function toggleDarkMode() {
+    const body = document.body;
+    body.classList.toggle('dark-mode');
+    
+    // Guardar preferencia
+    const isDark = body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
+
+// Cargar preferencia al iniciar
+window.addEventListener('DOMContentLoaded', () => {
+    // 1. Cargar tema
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+    // 2. Inicializar el resto
+    inicializar();
+});
+
+
+
+
 function renombrarVehiculo() {
     const nombreActual = vehiculoActivo;
     const nuevoNombre = prompt("Introduce el nuevo nombre para " + nombreActual + ":", nombreActual);
     
     if (nuevoNombre && nuevoNombre !== nombreActual) {
-        if (baseDatos[nuevoNombre]) { alert("Ya existe un vehículo con ese nombre."); return; }
+        if (baseDatos[nuevoNombre]) {
+            alert("Ya existe un vehículo con ese nombre.");
+            return;
+        }
+        // Crear nueva entrada y borrar la vieja
         baseDatos[nuevoNombre] = baseDatos[nombreActual];
         delete baseDatos[nombreActual];
         
@@ -1296,6 +1200,7 @@ function renombrarVehiculo() {
     }
 }
 
+
 function eliminarVehiculo() {
     if (Object.keys(baseDatos).length <= 1) {
         alert("No puedes eliminar el único vehículo disponible.");
@@ -1304,6 +1209,7 @@ function eliminarVehiculo() {
     
     if (confirm("¿Estás seguro de eliminar el vehículo '" + vehiculoActivo + "'? Se perderán todos sus datos.")) {
         delete baseDatos[vehiculoActivo];
+        // Cambiar al primer vehículo disponible tras borrar
         vehiculoActivo = Object.keys(baseDatos)[0];
         localStorage.setItem('app_vehiculo_activo', vehiculoActivo);
         
@@ -1313,28 +1219,197 @@ function eliminarVehiculo() {
     }
 }
 
-function cambiarVehiculoActivo() {
-    vehiculoActivo = document.getElementById('selectorVehiculo').value;
+
+
+
+    const staticVehiculosPredeterminados = {
+        "MG3 Hybrid +": {
+            kmActuales: 5000,
+            proxAceite: 15000,
+            proxFiltro: 15000,
+            proxRevision: 100000,
+            registros: []
+        }
+    };
+    const gasolinerasPredeterminadas = ["Avanza Oil", "Repsol", "Petrem ECO"];
+
+
+
+
+    let baseDatos = JSON.parse(localStorage.getItem('app_combustible_data')) || staticVehiculosPredeterminados;
+    let gasolineras = JSON.parse(localStorage.getItem('app_gasolineras_data')) || gasolinerasPredeterminadas;
+    let vehiculoActivo = localStorage.getItem('app_vehiculo_activo') || "MG3 Hybrid +";
+    let miGrafico = null; // Guardará la instancia del gráfico
+
+
+
+
+    if (!baseDatos[vehiculoActivo]) {
+        vehiculoActivo = Object.keys(baseDatos)[0] || "MG3 Hybrid +";
+    }
+
+
+
+
+    function inicializar() {
+        actualizarSelectorVehiculos();
+        actualizarSelectorGasolineras();
+        cargarDatosVehiculo();
+    }
+
+
+
+
+    function crearGasolinera() {
+        const nombre = document.getElementById('nuevaGasolineraNombre').value.trim();
+        if (!nombre) return;
+        if (gasolineras.includes(nombre)) {
+            alert("Esta gasolinera ya está registrada.");
+            return;
+        }
+        gasolineras.push(nombre);
+        localStorage.setItem('app_gasolineras_data', JSON.stringify(gasolineras));
+        actualizarSelectorGasolineras();
+        document.getElementById('nuevaGasolineraNombre').value = '';
+        toggleForm('nuevaGasolineraForm');
+    }
+
+
+
+
+    function actualizarSelectorGasolineras() {
+        const selector = document.getElementById('gasolinera');
+        selector.innerHTML = '';
+        gasolineras.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.textContent = g;
+            selector.appendChild(opt);
+        });
+    }
+
+
+
+
+    function crearVehiculo() {
+    // 1. Pedir datos uno a uno
+    const nombre = prompt("Nombre / Modelo del nuevo vehículo:");
+    if (!nombre) return; // Cancelado
+
+    const kmInici = prompt("Kilómetros iniciales actuales:");
+    if (kmInici === null) return;
+
+    const capacidad = prompt("Capacidad del depósito (Litros):");
+    if (capacidad === null) return;
+
+
+
+    // 2. Validación de datos numéricos
+    const kmNum = parseFloat(kmInici);
+    const capNum = parseFloat(capacidad);
+    
+    if (baseDatos[nombre]) {
+        alert("Ya existe un vehículo con ese nombre.");
+        return;
+    }
+
+    // 3. Guardar en la base de datos
+    baseDatos[nombre] = {
+        kmActuales: kmNum,
+        capacidadDeposito: capNum,
+        proxAceite: 0,
+        proxFiltro: 0,
+        proxRevision: 0,
+        historialBateria: [],
+        registros: []
+    };
+
+    vehiculoActivo = nombre;
     localStorage.setItem('app_vehiculo_activo', vehiculoActivo);
+    
+    guardarEnStorage();
+    actualizarSelectorVehiculos();
     cargarDatosVehiculo();
+    mostrarNotificacion("Vehículo '" + nombre + "' creado correctamente");
 }
+
+
+    function actualizarSelectorVehiculos() {
+        const selector = document.getElementById('selectorVehiculo');
+        selector.innerHTML = '';
+        Object.keys(baseDatos).forEach(nombre => {
+            const opt = document.createElement('option');
+            opt.value = nombre;
+            opt.textContent = nombre;
+            if (nombre === vehiculoActivo) opt.selected = true;
+            selector.appendChild(opt);
+        });
+    }
+
+
+
+
+    function cambiarVehiculoActivo() {
+        vehiculoActivo = document.getElementById('selectorVehiculo').value;
+        localStorage.setItem('app_vehiculo_activo', vehiculoActivo);
+        cargarDatosVehiculo();
+    }
+
 
 function guardarKmActuales() {
     const km = parseFloat(document.getElementById('kmOdom').value) || 0;
     if(baseDatos[vehiculoActivo]) {
+        // 1. Guardar en el objeto de datos
         baseDatos[vehiculoActivo].kmActuales = km;
+        
+        // 2. Actualizar el display en la tarjeta de "Vehículo Activo"
         document.getElementById('displayKmActuales').textContent = km.toLocaleString();
+        
+        // 3. Guardar en Storage
         guardarEnStorage();
+        
+        // 4. Recalcular mantenimientos
         calcularMantenimiento();
     }
 }
 
+
+    function guardarPlanesMantenimiento() {
+        const coche = baseDatos[vehiculoActivo];
+        if (!coche) return;
+    const fechaITVInput = document.getElementById('planITV').value;
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); 
+
+    if (fechaITVInput && new Date(fechaITVInput) < hoy) {
+        alert("La fecha de la ITV no puede ser anterior a hoy.");
+        document.getElementById('planITV').value = ""; // Limpiar campo
+        return;
+    }
+
+    	  coche.fechaITV = fechaITVInput;
+		  coche.proxRevisionGen = parseFloat(document.getElementById('planRevisionGeneral').value) || 0;
+
+        coche.proxAceite = parseFloat(document.getElementById('planAceite').value) || 0;
+        coche.proxFiltro = parseFloat(document.getElementById('planFiltro').value) || 0;
+        coche.proxRevision = parseFloat(document.getElementById('planRevision').value) || 0;
+        guardarEnStorage();
+        calcularMantenimiento();
+		calcularEstadoITV(coche.fechaITV);
+    }
+
+
 function cargarDatosVehiculo() {
     const coche = baseDatos[vehiculoActivo];
+    
+    // 1. Verificación: Si no hay coche, salimos de la función inmediatamente.
     if (!coche) {
         console.warn("No se encontró el vehículo activo:", vehiculoActivo);
         return; 
     }
+
+    // 2. A partir de aquí, el código solo se ejecuta si "coche" existe.
+    // Usamos el operador de encadenamiento opcional o valores por defecto para mayor seguridad.
     
     const elKm = document.getElementById('kmOdom');
     if (elKm) elKm.value = coche.kmActuales;
@@ -1342,6 +1417,7 @@ function cargarDatosVehiculo() {
     const displayKm = document.getElementById('displayKmActuales');
     if (displayKm) displayKm.textContent = coche.kmActuales.toLocaleString();
 
+    // Actualización de inputs de mantenimiento
     document.getElementById('planITV').value = coche.fechaITV || ''; 
     document.getElementById('planRevisionGeneral').value = coche.proxRevisionGen || 0;
     document.getElementById('planAceite').value = coche.proxAceite || 0;
@@ -1350,6 +1426,7 @@ function cargarDatosVehiculo() {
     document.getElementById('diasSemana').value = coche.diasSemana || 5;
     document.getElementById('kmDiarios').value = coche.kmDiarios || 0;
 
+    // 3. Ejecución de funciones de refresco
     actualizarMantenimientoBateria(); 
     actualizarMantenimientoRefrigerante();
     actualizarMantenimientoNeumaticos();
@@ -1360,12 +1437,61 @@ function cargarDatosVehiculo() {
     calcularGastoDesplazamiento();
 }
 
-// 5. REGISTROS DE REPOSTAJE Y ENTRADA DE DATOS
+
+
+
+    function calcularMantenimiento() {
+        const coche = baseDatos[vehiculoActivo];
+        if (!coche) return;
+		const pRevGen = coche.proxRevisionGen || 0;
+actualizarItemMantenimiento('maintRevisionGenText', 'statusRevisionGen', pRevGen, coche.kmActuales);
+        const pAceite = coche.proxAceite || 0;
+        const pFiltro = coche.proxFiltro || 0;
+        const pRevision = coche.proxRevision || 0;
+        actualizarItemMantenimiento('maintAceiteText', 'statusAceite', pAceite, coche.kmActuales);
+        actualizarItemMantenimiento('maintFiltroText', 'statusFiltro', pFiltro, coche.kmActuales);
+        actualizarItemMantenimiento('maintRevisionText', 'statusRevision', pRevision, coche.kmActuales);
+    }
+
+
+
+
+    function actualizarItemMantenimiento(textId, badgeId, kmDestino, kmActuales) {
+        const infoTexto = document.getElementById(textId);
+        const badge = document.getElementById(badgeId);
+        
+        infoTexto.textContent = `Próximo objetivo: ${kmDestino.toLocaleString()} Km`;
+        const kmRestantes = kmDestino - kmActuales;
+        
+        if (kmRestantes > 0) {
+            badge.textContent = `Faltan ${kmRestantes.toLocaleString()} Km`;
+            badge.className = "badge success";
+        } else {
+            badge.textContent = `¡Toca Cambio! (${Math.abs(kmRestantes).toLocaleString()} Km pasados)`;
+            badge.className = "badge danger";
+        }
+    }
+
+
+
+
+    function obtenerFechaFormateada() {
+        const hoy = new Date();
+        const dd = String(hoy.getDate()).padStart(2, '0');
+        const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+        const aaaa = hoy.getFullYear();
+        return `${dd}/${mm}/${aaaa}`;
+    }
+
+
 document.getElementById('fuelForm').addEventListener('submit', (e) => {
     e.preventDefault();
+    
+    // 1. Obtenemos el coche primero
     const coche = baseDatos[vehiculoActivo];
-    if (!coche) return;
+    if (!coche) return; // Validación de seguridad inicial
 
+    // 2. Obtenemos los valores del formulario una sola vez
     const kmTotalesOdom = parseFloat(document.getElementById('kmTotalesOdom').value);
     const gasolinera = document.getElementById('gasolinera').value;
     const combustible = document.getElementById('tipoCombustible').value;
@@ -1373,6 +1499,7 @@ document.getElementById('fuelForm').addEventListener('submit', (e) => {
     const litros = parseFloat(document.getElementById('litros').value);
     const aire = document.getElementById('aireAcondicionado').value;
     
+    // 3. Validaciones
     if (kmTotalesOdom <= coche.kmActuales) {
         alert(`Error: El kilometraje debe ser mayor al actual (${coche.kmActuales} Km).`);
         return; 
@@ -1380,6 +1507,8 @@ document.getElementById('fuelForm').addEventListener('submit', (e) => {
 
     const kmAnteriores = coche.kmActuales;
     const kmHechos = kmTotalesOdom - kmAnteriores;
+
+    // 4. Cálculos
     const costeTotal = litros * precioLitro;
     const consumoMedio = (litros / kmHechos) * 100;
     const kmPorLitro = kmHechos / litros;
@@ -1394,22 +1523,584 @@ document.getElementById('fuelForm').addEventListener('submit', (e) => {
         precioPorKm: precioPorKm.toFixed(3)
     };
 
+    // 5. Actualización del estado
     coche.kmActuales = kmTotalesOdom;
     document.getElementById('kmOdom').value = kmTotalesOdom;
     document.getElementById('displayKmActuales').textContent = kmTotalesOdom.toLocaleString();
     coche.registros.unshift(nuevoRegistro);
     
+    // 6. Finalización
     guardarEnStorage();
     document.getElementById('fuelForm').reset();
     actualizarTablayStats();
     calcularMantenimiento();
     calcularAutonomia();
     calcularGastoDesplazamiento();
-    actualizarMantenimientoBateria();
-    actualizarMantenimientoRefrigerante();
-    actualizarMantenimientoNeumaticos();
+
+
+	actualizarMantenimientoBateria();
+   actualizarMantenimientoRefrigerante();
+   actualizarMantenimientoNeumaticos();
+
 });
 
+
+
+
+function eliminarRegistro(index) {
+    const coche = baseDatos[vehiculoActivo];
+    if (!coche || !coche.registros[index]) return;
+
+    if (confirm("¿Estás seguro de eliminar este registro?")) {
+        // Lógica de retroceso del odómetro
+        if (index === 0) {
+            const registroAEliminar = coche.registros[0];
+            coche.kmActuales = Math.max(0, coche.kmActuales - registroAEliminar.kmHechos);
+        }
+
+        coche.registros.splice(index, 1);
+        guardarEnStorage();
+        actualizarTablayStats();
+        cargarDatosVehiculo();
+        mostrarNotificacion("Registro eliminado y odómetro ajustado");
+    }
+}
+
+
+    function actualizarTablayStats() {
+        const coche = baseDatos[vehiculoActivo];
+        const tabla = document.getElementById('historialTab');
+        tabla.innerHTML = '';
+        if (!coche) return;
+
+
+
+
+        if (coche.registros.length > 0) {
+            const ultimo = coche.registros[0];
+            document.getElementById('calcConsumo').textContent = `${ultimo.consumoMedio} L/100km`;
+            document.getElementById('calcKmLitro').textContent = `${ultimo.kmPorLitro} Km/L`;
+            document.getElementById('calcCoste').textContent = `${ultimo.costeTotal} €`;
+            document.getElementById('calcPrecioKm').textContent = `${ultimo.precioPorKm} €/Km`;
+        } else {
+            document.getElementById('calcConsumo').textContent = "- L/100km";
+            document.getElementById('calcKmLitro').textContent = "- Km/L";
+            document.getElementById('calcCoste').textContent = "- €";
+            document.getElementById('calcPrecioKm').textContent = "- €/Km";
+        }
+
+
+
+
+        const fragmento = document.createDocumentFragment();
+        coche.registros.forEach((r, index) => {
+            const combAsignado = r.combustible || "-";
+            const fechaAsignada = r.fecha || "--/--/----";
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+                <td style="color:#64748b; font-weight:500;">${escapeHTML(fechaAsignada)}</td>
+                <td>${escapeHTML(r.gasolinera)}</td>
+                <td><span style="font-size:12px; font-weight:600; color:#475569;">${escapeHTML(combAsignado)}</span></td>
+                <td>${r.kmHechos}</td>
+                <td>${r.litros}L</td>
+                <td>${r.consumoMedio}</td>
+                <td>${r.costeTotal}€</td>
+                <td>${r.aire}</td>
+                <td><button class="btn-delete" onclick="eliminarRegistro(${index})" title="Eliminar registro">❌</button></td>
+            `;
+            fragmento.appendChild(row);
+        });
+        tabla.appendChild(fragmento);
+        
+        calcularComparativaGasolineras(coche.registros);
+        calcularPremiosYDestacados();
+        renderizarGrafico(coche.registros); // NUEVO: Llamada para repintar el gráfico actualizado
+    }
+
+
+
+
+    function calcularComparativaGasolineras(registros) {
+        const compTabla = document.getElementById('comparadorTab');
+        compTabla.innerHTML = '';
+        if (!registros || registros.length === 0) {
+            compTabla.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b;">Aún no hay datos para comparar</td></tr>`;
+            return;
+        }
+        const estadisticas = {};
+        registros.forEach(r => {
+            if (!estadisticas[r.gasolinera]) {
+                estadisticas[r.gasolinera] = {
+                    totalLitros: 0,
+                    totalKm: 0,
+                    sumaPrecioLitro: 0,
+                    contador: 0
+                };
+            }
+            estadisticas[r.gasolinera].totalLitros += parseFloat(r.litros) || 0;
+            estadisticas[r.gasolinera].totalKm += parseFloat(r.kmHechos) || 0;
+            estadisticas[r.gasolinera].sumaPrecioLitro += parseFloat(r.precioLitro) || 0;
+            estadisticas[r.gasolinera].contador += 1;
+        });
+
+
+
+
+        const fragmento = document.createDocumentFragment();
+        Object.keys(estadisticas).forEach(gas => {
+            const data = estadisticas[gas];
+            const consumoMedioGlobal = data.totalKm > 0 ? ((data.totalLitros / data.totalKm) * 100).toFixed(2) : "0.00";
+            const precioMedioGlobal = data.contador > 0 ? (data.sumaPrecioLitro / data.contador).toFixed(3) : "0.000";
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${escapeHTML(gas)}</strong></td>
+                <td>${data.contador} veces</td>
+                <td><span style="color: var(--primary); font-weight:600;">${consumoMedioGlobal}</span> L/100km</td>
+                <td>${precioMedioGlobal} €/L</td>
+            `;
+            fragmento.appendChild(row);
+        });
+        compTabla.appendChild(fragmento);
+    }
+
+
+
+
+    function calcularPremiosYDestacados() {
+        if(!baseDatos[vehiculoActivo]) return;
+        const registrosCoche = baseDatos[vehiculoActivo].registros || [];
+        let mejorGasolineraTexto = "Sin datos";
+        
+        if (registrosCoche.length > 0) {
+            const estGas = {};
+            registrosCoche.forEach(r => {
+                if (!estGas[r.gasolinera]) estGas[r.gasolinera] = { litros: 0, km: 0 };
+                estGas[r.gasolinera].litros += parseFloat(r.litros) || 0;
+                estGas[r.gasolinera].km += parseFloat(r.kmHechos) || 0;
+            });
+            let minConsumo = Infinity;
+            Object.keys(estGas).forEach(gas => {
+                if(estGas[gas].km > 0) {
+                    const con = (estGas[gas].litros / estGas[gas].km) * 100;
+                    if (con < minConsumo) {
+                        minConsumo = con;
+                        mejorGasolineraTexto = `${gas} (${con.toFixed(2)} L/100)`;
+                    }
+                }
+            });
+        }
+        document.getElementById('topGasolinera').textContent = mejorGasolineraTexto;
+
+
+
+
+        let mejorVehiculoTexto = "Sin datos";
+        let minConsumoGlobal = Infinity;
+        Object.keys(baseDatos).forEach(nomVehiculo => {
+            const regs = baseDatos[nomVehiculo].registros || [];
+            if (regs.length > 0) {
+                let totalL = 0;
+                let totalKm = 0;
+                regs.forEach(r => {
+                    totalL += parseFloat(r.litros) || 0;
+                    totalKm += parseFloat(r.kmHechos) || 0;
+                });
+                if(totalKm > 0) {
+                    const conGlobal = (totalL / totalKm) * 100;
+                    if (conGlobal < minConsumoGlobal) {
+                        minConsumoGlobal = conGlobal;
+                        mejorVehiculoTexto = `${nomVehiculo} (${conGlobal.toFixed(2)} L/100)`;
+                    }
+                }
+            }
+        });
+        document.getElementById('topVehiculo').textContent = mejorVehiculoTexto;
+    }
+
+
+
+
+    // NUEVO: Función encargada de estructurar y pintar los datos *****íticos
+    function renderizarGrafico(registros) {
+        const ctx = document.getElementById('graficoCombustible').getContext('2d');
+        
+        // Si no hay suficientes registros (al menos 1), destruimos el gráfico para limpiar la pantalla
+        if (!registros || registros.length === 0) {
+            if (miGrafico) miGrafico.destroy();
+            return;
+        }
+
+
+
+
+        // Los registros están del más nuevo al más viejo (unshift). Para el eje X del gráfico los invertimos (.reverse)
+        const regsInvertidos = [...registros].reverse();
+        
+        const etiquetasFechas = regsInvertidos.map(r => r.fecha);
+        const datosConsumo = regsInvertidos.map(r => parseFloat(r.consumoMedio));
+        const datosPrecio = regsInvertidos.map(r => parseFloat(r.precioLitro));
+
+
+
+
+        // Si ya existía un gráfico previo, se destruye para evitar problemas visuales al actualizar datos
+        if (miGrafico) {
+            miGrafico.destroy();
+        }
+
+
+
+
+        // Inicializamos el nuevo gráfico con doble eje Y (Consumo a la izquierda, Precio a la derecha)
+        miGrafico = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: etiquetasFechas,
+                datasets: [
+                    {
+                        label: 'Consumo (L/100km)',
+                        data: datosConsumo,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'yConsumo'
+                    },
+                    {
+                        label: 'Precio (€/L)',
+                        data: datosPrecio,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'yPrecio',
+                        borderDash: [5, 5]
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { boxWidth: 12, font: { size: 11 } }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    },
+                    yConsumo: {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: 'L/100km', font: { size: 11 } },
+                        ticks: { font: { size: 10 } }
+                    },
+                    yPrecio: {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: '€/Litro', font: { size: 11 } },
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+
+
+
+
+    function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g,
+            tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+    }
+
+
+
+
+    function guardarEnStorage() {
+        localStorage.setItem('app_combustible_data', JSON.stringify(baseDatos));
+    }
+
+
+
+
+    function exportarDatos() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({baseDatos, gasolineras}));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "backup_combustible.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+
+
+
+    function importarDatos(event) {
+        const input = event.target;
+        const reader = new FileReader();
+        reader.onload = function() {
+            try {
+                const importado = JSON.parse(reader.result);
+                if (importado.baseDatos && importado.gasolineras) {
+                    baseDatos = importado.baseDatos;
+                    gasolineras = importado.gasolineras;
+                    localStorage.setItem('app_combustible_data', JSON.stringify(baseDatos));
+                    localStorage.setItem('app_gasolineras_data', JSON.stringify(gasolineras));
+                    vehiculoActivo = Object.keys(baseDatos)[0] || "MG3Hybrid +";
+                    localStorage.setItem('app_vehiculo_activo', vehiculoActivo);
+                    inicializar();
+                    alert("¡Datos importados con éxito!");
+                } else {
+                    alert("El archivo JSON no tiene el formato correcto.");
+                }
+            } catch (e) {
+                alert("Error al leer el archivo JSON.");
+            }
+        };
+        if(input.files[0]) {
+            reader.readAsText(input.files[0]);
+        }
+    }
+
+    // ... (tus otras funciones como actualizarTablayStats, etc.)
+
+    function calcularAutonomia() {
+        const coche = baseDatos[vehiculoActivo];
+        // Si no hay registros o no se ha definido capacidad, salimos
+        if (!coche || coche.registros.length === 0 || !coche.capacidadDeposito) {
+            const el = document.getElementById('autonomiaEstimada');
+            if (el) el.textContent = "- Km";
+            return;
+        }
+        
+        const ultimoConsumo = parseFloat(coche.registros[0].consumoMedio); // L/100km
+        const autonomia = (coche.capacidadDeposito / ultimoConsumo) * 100;
+        
+        // Actualizamos el elemento HTML si existe
+        const el = document.getElementById('autonomiaEstimada');
+        if (el) el.textContent = `${autonomia.toFixed(0)} Km`;
+    }
+
+
+
+function actualizarMantenimientoBateria() {
+    const coche = baseDatos[vehiculoActivo];
+    const DURACION_ESTIMADA = 70000;
+    
+    if (!coche.historialBateria || coche.historialBateria.length === 0) {
+        document.getElementById('maintBateriaText').textContent = "Sin registros (Est. 70.000 Km)";
+        return;
+    }
+
+    const ultimoCambio = coche.historialBateria[0];
+    const kmUso = coche.kmActuales - ultimoCambio.kmCambio;
+    const kmRestantes = DURACION_ESTIMADA - kmUso;
+    
+    // Cálculo de tiempo de uso
+    const fechaInicio = new Date(ultimoCambio.fecha);
+    const hoy = new Date();
+    const mesesUso = Math.floor((hoy - fechaInicio) / (1000 * 60 * 60 * 24 * 30));
+
+    document.getElementById('maintBateriaText').textContent = 
+        `Uso: ${kmUso.toLocaleString()} Km | ${mesesUso} meses`;
+    
+    const status = document.getElementById('statusBateria');
+    if (kmRestantes < 5000) {
+        status.textContent = `¡Atención! Quedan ${kmRestantes.toLocaleString()} Km`;
+        status.className = "badge danger";
+    } else {
+        status.textContent = `Salud: ${kmRestantes.toLocaleString()} Km restantes`;
+        status.className = "badge success";
+    }
+}
+
+
+function registrarCambioBateria() {
+    const coche = baseDatos[vehiculoActivo];
+    const fecha = document.getElementById('fechaCambioBateria').value;
+    
+    if (!fecha) { alert("Selecciona una fecha"); return; }
+    
+    if (!coche.historialBateria) coche.historialBateria = [];
+    
+    // Guardamos el cambio con los km actuales del coche
+    coche.historialBateria.unshift({
+        fecha: fecha,
+        kmCambio: coche.kmActuales
+    });
+    
+    guardarEnStorage();
+    actualizarMantenimientoBateria();
+	 cargarDatosVehiculo();
+    alert("Cambio de batería registrado.");
+}
+
+
+function guardarDesplazamientoEnBD() {
+    const coche = baseDatos[vehiculoActivo];
+    if (!coche) return;
+    
+    coche.diasSemana = parseFloat(document.getElementById('diasSemana').value) || 0;
+    coche.kmDiarios = parseFloat(document.getElementById('kmDiarios').value) || 0;
+    
+    // Persistimos en localStorage
+    guardarEnStorage();
+}
+
+
+
+function registrarCambioRefrigerante() {
+    const coche = baseDatos[vehiculoActivo];
+    const fecha = document.getElementById('fechaCambioRefrigerante').value;
+    
+    if (!fecha) { alert("Selecciona una fecha"); return; }
+    
+    if (!coche.historialRefrigerante) coche.historialRefrigerante = [];
+    
+    coche.historialRefrigerante.unshift({
+        fecha: fecha,
+        kmCambio: coche.kmActuales
+    });
+    
+    guardarEnStorage();
+    actualizarMantenimientoRefrigerante();
+	 cargarDatosVehiculo();
+    alert("Cambio de refrigerante registrado.");
+}
+
+function actualizarMantenimientoRefrigerante() {
+    const coche = baseDatos[vehiculoActivo];
+    const DURACION_KM = 40000;
+    const DURACION_MESES = 24;
+    
+    const textEl = document.getElementById('maintRefrigeranteText');
+    const statusEl = document.getElementById('statusRefrigerante');
+    
+    if (!coche.historialRefrigerante || coche.historialRefrigerante.length === 0) {
+        textEl.textContent = "Sin registros (Est. 40.000 Km / 2 años)";
+        statusEl.textContent = "Sin datos";
+        return;
+    }
+
+    const ultimoCambio = coche.historialRefrigerante[0];
+    const kmUso = coche.kmActuales - ultimoCambio.kmCambio;
+    
+    const fechaInicio = new Date(ultimoCambio.fecha);
+    const hoy = new Date();
+    const mesesUso = Math.floor((hoy - fechaInicio) / (1000 * 60 * 60 * 24 * 30));
+
+    textEl.textContent = `Uso: ${kmUso.toLocaleString()} Km | ${mesesUso} meses`;
+    
+    // Alerta si falta menos de 3000km o si han pasado más de 22 meses
+    if (kmUso >= (DURACION_KM - 3000) || mesesUso >= (DURACION_MESES - 2)) {
+        statusEl.textContent = `¡Atención! Proximo mantenimiento`;
+        statusEl.className = "badge danger";
+    } else {
+        statusEl.textContent = `En buen estado`;
+        statusEl.className = "badge success";
+    }
+}
+
+
+function registrarCambioNeumatico() {
+    const coche = baseDatos[vehiculoActivo];
+    const tipo = document.getElementById('tipoNeumaticoCambio').value;
+    const fecha = document.getElementById('fechaCambioNeumatico').value;
+    
+    if (!fecha) { alert("Selecciona una fecha"); return; }
+    
+    // Creamos un historial específico por tipo
+    const key = (tipo === "Delanteros") ? "historialNeumDel" : "historialNeumTras";
+    if (!coche[key]) coche[key] = [];
+    
+    coche[key].unshift({ fecha: fecha, kmCambio: coche.kmActuales });
+    
+    guardarEnStorage();
+    actualizarMantenimientoNeumaticos();
+	 cargarDatosVehiculo();
+    alert(`Cambio de neumáticos ${tipo} registrado.`);
+	cargarDatosVehiculo();
+}
+
+
+function actualizarMantenimientoNeumaticos() {
+    const coche = baseDatos[vehiculoActivo];
+    const VIDA_UTIL_KM = 50000;
+    const VIDA_UTIL_MESES = 60; // 5 años es un tiempo de referencia común para neumáticos
+    
+    // Función auxiliar para procesar cada eje
+    const procesarEje = (key, textId, statusId) => {
+        const hist = coche[key] || [];
+        const textEl = document.getElementById(textId);
+        const statusEl = document.getElementById(statusId);
+        
+        if (hist.length === 0) {
+            textEl.textContent = "Sin registros (Est. 50.000 Km / 5 años)";
+            statusEl.textContent = "Sin datos";
+            return;
+        }
+        
+        // Cálculos de uso
+        const fechaInicio = new Date(hist[0].fecha);
+        const hoy = new Date();
+        const mesesUso = Math.floor((hoy - fechaInicio) / (1000 * 60 * 60 * 24 * 30));
+        const kmUso = coche.kmActuales - hist[0].kmCambio;
+        
+        // Actualizamos el texto informativo
+        textEl.textContent = `Uso: ${kmUso.toLocaleString()} Km | ${mesesUso} meses`;
+        
+        // Lógica de Alerta (Km o Tiempo)
+        if (kmUso >= (VIDA_UTIL_KM - 5000) || mesesUso >= (VIDA_UTIL_MESES - 6)) {
+            statusEl.textContent = `¡Cambio cercano!`;
+            statusEl.className = "badge danger";
+        } else {
+            // Calculamos una "salud" promedio entre Km y Tiempo
+            const saludKm = Math.max(0, 1 - kmUso / VIDA_UTIL_KM);
+            const saludTiempo = Math.max(0, 1 - mesesUso / VIDA_UTIL_MESES);
+            const saludPromedio = Math.round(((saludKm + saludTiempo) / 2) * 100);
+            
+            statusEl.textContent = `Salud: ${saludPromedio}%`;
+            statusEl.className = "badge success";
+        }
+    };
+
+    procesarEje("historialNeumDel", "maintNeumDelText", "statusNeumDel");
+    procesarEje("historialNeumTras", "maintNeumTrasText", "statusNeumTras");
+}
+
+
+
+window.addEventListener('DOMContentLoaded', () => {
+    // Si ya habías definido el tema oscuro, cargamos la preferencia
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+    inicializar();
+    actualizarReloj();
+    setInterval(actualizarReloj, 1000);
+});
+
+// 2. Función toggleForm única (gestiona visibilidad de formularios)
+function toggleForm(id) {
+    const form = document.getElementById(id);
+    if (!form) return;
+    form.classList.toggle('hidden');
+    if (!form.classList.contains('hidden')) {
+        cargarDatosVehiculo(); 
+        const primerInput = form.querySelector('input');
+        if (primerInput) primerInput.focus();
+    }
+}
+
+// 3. Función eliminarRegistro única (gestiona borrado y odómetro)
 function eliminarRegistro(index) {
     const coche = baseDatos[vehiculoActivo];
     if (!coche || !coche.registros[index]) return;
@@ -1425,628 +2116,22 @@ function eliminarRegistro(index) {
         calcularMantenimiento();
         calcularAutonomia();
         calcularGastoDesplazamiento();
-        cargarDatosVehiculo();
-        mostrarNotificacion("Registro eliminado y odómetro ajustado");
+        mostrarNotificacion("Registro eliminado correctamente");
     }
 }
 
-// 6. CÁLCULOS ESTADÍSTICOS, RENDIMIENTO Y MANTENIMIENTO
-function calcularMantenimiento() {
-    const coche = baseDatos[vehiculoActivo];
-    if (!coche) return;
-	// CORRECCIÓN: Definir pAceite antes de usarlo
-    const pAceite = coche.proxAceite || 0; 
-    const pRevGen = coche.proxRevisionGen || 0;
-    actualizarItemMantenimiento('maintRevisionGenText', 'statusRevisionGen', pRevGen, coche.kmActuales);
-    actualizarItemMantenimiento('maintAceiteText', 'statusAceite', pAceite, coche.kmActuales); // Nota: Asegúrate de declarar pAceite si se usa globalmente
-    actualizarItemMantenimiento('maintFiltroText', 'statusFiltro', coche.proxAceite || 0, coche.kmActuales);
-    actualizarItemMantenimiento('maintFiltroText', 'statusFiltro', coche.proxFiltro || 0, coche.kmActuales);
-    actualizarItemMantenimiento('maintRevisionText', 'statusRevision', coche.proxRevision || 0, coche.kmActuales);
-}
-
-function actualizarItemMantenimiento(textId, badgeId, kmDestino, kmActuales) {
-    const infoTexto = document.getElementById(textId);
-    const badge = document.getElementById(badgeId);
-    if (!infoTexto || !badge) return;
-    
-    infoTexto.textContent = `Próximo objetivo: ${kmDestino.toLocaleString()} Km`;
-    const kmRestantes = kmDestino - kmActuales;
-    
-    if (kmRestantes > 0) {
-        badge.textContent = `Faltan ${kmRestantes.toLocaleString()} Km`;
-        badge.className = "badge success";
-    } else {
-        badge.textContent = `¡Toca Cambio! (${Math.abs(kmRestantes).toLocaleString()} Km pasados)`;
-        badge.className = "badge danger";
-    }
-}
-
-function calcularEstadoITV(fechaITV) {
-    const badge = document.getElementById('statusITV');
-    const text = document.getElementById('maintITVText');
-    if (!badge || !text) return;
-    if (!fechaITV) return;
-
-    const hoy = new Date();
-    const fecha = new Date(fechaITV);
-    const diffDays = Math.ceil((fecha - hoy) / (1000 * 60 * 60 * 24));
-
-    text.textContent = `Vence el: ${fecha.toLocaleDateString('es-ES')}`;
-
-    if (diffDays < 0) {
-        badge.textContent = `¡ITV Vencida!`;
-        badge.className = "badge alerta-urgente";
-    } else if (diffDays <= 15) {
-        badge.textContent = `¡⚠️ URGENTE: ${diffDays} días!`;
-        badge.className = "badge alerta-urgente";
-    } else {
-        badge.textContent = `Faltan ${diffDays} días`;
-        badge.className = "badge success";
-    }
-}
-
-function guardarPlanesMantenimiento() {
-    const coche = baseDatos[vehiculoActivo];
-    if (!coche) return;
-    const fechaITVInput = document.getElementById('planITV').value;
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0); 
-
-    if (fechaITVInput && new Date(fechaITVInput) < hoy) {
-        alert("La fecha de la ITV no puede ser anterior a hoy.");
-        document.getElementById('planITV').value = "";
-        return;
-    }
-
-    coche.fechaITV = fechaITVInput;
-    coche.proxRevisionGen = parseFloat(document.getElementById('planRevisionGeneral').value) || 0;
-    coche.proxAceite = parseFloat(document.getElementById('planAceite').value) || 0;
-    coche.proxFiltro = parseFloat(document.getElementById('planFiltro').value) || 0;
-    coche.proxRevision = parseFloat(document.getElementById('planRevision').value) || 0;
-    
-    guardarEnStorage();
-    calcularMantenimiento();
-    calcularEstadoITV(coche.fechaITV);
-}
-
-function calcularGastoDesplazamiento() {
-    const coche = baseDatos[vehiculoActivo];
-    if (!coche || coche.registros.length === 0) return;
-
-    const dias = parseFloat(document.getElementById('diasSemana').value) || 0;
-    const km = parseFloat(document.getElementById('kmDiarios').value) || 0;
-    
-    const ultimoRegistro = coche.registros[0];
-    const precioLitro = parseFloat(ultimoRegistro.precioLitro);
-    const consumoMedio = parseFloat(ultimoRegistro.consumoMedio);
-
-    const litrosDia = (km / 100) * consumoMedio;
-    const costeDia = litrosDia * precioLitro;
-    const costeSemana = costeDia * dias;
-    const costeMes = costeSemana * 4.33;
-    const costeAno = costeSemana * 52;
-
-    document.getElementById('gastoDia').textContent = `${costeDia.toFixed(2)} €`;
-    document.getElementById('gastoSemana').textContent = `${costeSemana.toFixed(2)} €`;
-    document.getElementById('gastoMes').textContent = `${costeMes.toFixed(2)} €`;
-    document.getElementById('gastoAno').textContent = `${costeAno.toFixed(2)} €`;
-}
-
-function calcularAutonomia() {
-    const coche = baseDatos[vehiculoActivo];
-    const el = document.getElementById('autonomiaEstimada');
-    if (!el) return;
-    if (!coche || coche.registros.length === 0 || !coche.capacidadDeposito) {
-        el.textContent = "- Km";
-        return;
-    }
-    const ultimoConsumo = parseFloat(coche.registros[0].consumoMedio);
-    const autonomia = (coche.capacidadDeposito / ultimoConsumo) * 100;
-    el.textContent = `${autonomia.toFixed(0)} Km`;
-}
-
-
-
-
-
-
-
-
-
-
-
-// Esta función se dispara cuando pulsas "Confirmar" en el teclado numérico
-function alConfirmarTeclado(valor) {
-    const inputDestino = document.getElementById('kmOdom');
-    if (inputDestino) {
-        inputDestino.value = valor; // Escribe el valor final
-        guardarKmActuales();        // Llama a tu función original de guardado
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-// 7. GESTIÓN DE GASOLINERAS Y TABLAS
-function crearGasolinera() {
-    const nombre = document.getElementById('nuevaGasolineraNombre').value.trim();
-    if (!nombre) return;
-    if (gasolineras.includes(nombre)) { alert("Esta gasolinera ya está registrada."); return; }
-    gasolineras.push(nombre);
-    localStorage.setItem('app_gasolineras_data', JSON.stringify(gasolineras));
-    actualizarSelectorGasolineras();
-    document.getElementById('nuevaGasolineraNombre').value = '';
-    toggleForm('nuevaGasolineraForm');
-}
-
-function actualizarSelectorGasolineras() {
-    const selector = document.getElementById('gasolinera');
-    if (!selector) return;
-    selector.innerHTML = '';
-    gasolineras.forEach(g => {
-        const opt = document.createElement('option');
-        opt.value = g;
-        opt.textContent = g;
-        selector.appendChild(opt);
-    });
-}
-
-function actualizarSelectorVehiculos() {
-    const selector = document.getElementById('selectorVehiculo');
-    if (!selector) return;
-    selector.innerHTML = '';
-    Object.keys(baseDatos).forEach(nombre => {
-        const opt = document.createElement('option');
-        opt.value = nombre;
-        opt.textContent = nombre;
-        if (nombre === vehiculoActivo) opt.selected = true;
-        selector.appendChild(opt);
-    });
-}
-
-function actualizarTablayStats() {
-    const coche = baseDatos[vehiculoActivo];
-    const tabla = document.getElementById('historialTab');
-    if (!tabla || !coche) return;
-
-    if (coche.registros.length > 0) {
-        const ultimo = coche.registros[0];
-        document.getElementById('calcConsumo').textContent = `${ultimo.consumoMedio} L/100km`;
-        document.getElementById('calcKmLitro').textContent = `${ultimo.kmPorLitro} Km/L`;
-        document.getElementById('calcCoste').textContent = `${ultimo.costeTotal} €`;
-        document.getElementById('calcPrecioKm').textContent = `${ultimo.precioPorKm} €/Km`;
-    } else {
-        document.getElementById('calcConsumo').textContent = "- L/100km";
-        document.getElementById('calcKmLitro').textContent = "- Km/L";
-        document.getElementById('calcCoste').textContent = "- €";
-        document.getElementById('calcPrecioKm').textContent = "- €/Km";
-    }
-
-    tabla.innerHTML = '';
-    const fragmento = document.createDocumentFragment();
-    coche.registros.forEach((r, index) => {
-        const combAsignado = r.combustible || "-";
-        const fechaAsignada = r.fecha || "--/--/----";
-        const row = document.createElement('tr');
-        
-        row.innerHTML = `
-            <td style="color:#64748b; font-weight:500;">${escapeHTML(fechaAsignada)}</td>
-            <td>${escapeHTML(r.gasolinera)}</td>
-            <td><span style="font-size:12px; font-weight:600; color:#475569;">${escapeHTML(combAsignado)}</span></td>
-            <td>${r.kmHechos}</td>
-            <td>${r.litros}L</td>
-            <td>${r.consumoMedio}</td>
-            <td>${r.costeTotal}€</td>
-            <td>${r.aire}</td>
-            <td><button class="btn-delete" onclick="eliminarRegistro(${index})" title="Eliminar registro">❌</button></td>
-        `;
-        fragmento.appendChild(row);
-    });
-    tabla.appendChild(fragmento);
-    
-    calcularComparativaGasolineras(coche.registros);
-    calcularPremiosYDestacados();
-    renderizarGrafico(coche.registros);
-}
-
-function calcularComparativaGasolineras(registros) {
-    const compTabla = document.getElementById('comparadorTab');
-    if (!compTabla) return;
-    compTabla.innerHTML = '';
-    if (!registros || registros.length === 0) {
-        compTabla.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b;">Aún no hay datos para comparar</td></tr>`;
-        return;
-    }
-    const estadisticas = {};
-    registros.forEach(r => {
-        if (!estadisticas[r.gasolinera]) {
-            estadisticas[r.gasolinera] = { totalLitros: 0, totalKm: 0, sumaPrecioLitro: 0, contador: 0 };
-        }
-        estadisticas[r.gasolinera].totalLitros += parseFloat(r.litros) || 0;
-        estadisticas[r.gasolinera].totalKm += parseFloat(r.kmHechos) || 0;
-        estadisticas[r.gasolinera].sumaPrecioLitro += parseFloat(r.precioLitro) || 0;
-        estadisticas[r.gasolinera].contador += 1;
-    });
-
-    const fragmento = document.createDocumentFragment();
-    Object.keys(estadisticas).forEach(gas => {
-        const data = estadisticas[gas];
-        const consumoMedioGlobal = data.totalKm > 0 ? ((data.totalLitros / data.totalKm) * 100).toFixed(2) : "0.00";
-        const precioMedioGlobal = data.contador > 0 ? (data.sumaPrecioLitro / data.contador).toFixed(3) : "0.000";
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><strong>${escapeHTML(gas)}</strong></td>
-            <td>${data.contador} veces</td>
-            <td><span style="color: var(--primary); font-weight:600;">${consumoMedioGlobal}</span> L/100km</td>
-            <td>${precioMedioGlobal} €/L</td>
-        `;
-        fragmento.appendChild(row);
-    });
-    compTabla.appendChild(fragmento);
-}
-
-function calcularPremiosYDestacados() {
-    if(!baseDatos[vehiculoActivo]) return;
-    const registrosCoche = baseDatos[vehiculoActivo].registros || [];
-    let mejorGasolineraTexto = "Sin datos";
-    
-    if (registrosCoche.length > 0) {
-        const estGas = {};
-        registrosCoche.forEach(r => {
-            if (!estGas[r.gasolinera]) estGas[r.gasolinera] = { litros: 0, km: 0 };
-            estGas[r.gasolinera].litros += parseFloat(r.litros) || 0;
-            estGas[r.gasolinera].km += parseFloat(r.kmHechos) || 0;
+// 4. Validación global para evitar números negativos
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('input', function() {
+            if (this.value < 0) this.value = 0;
         });
-        let minConsumo = Infinity;
-        Object.keys(estGas).forEach(gas => {
-            if(estGas[gas].km > 0) {
-                const con = (estGas[gas].litros / estGas[gas].km) * 100;
-                if (con < minConsumo) {
-                    minConsumo = con;
-                    mejorGasolineraTexto = `${gas} (${con.toFixed(2)} L/100)`;
-                }
-            }
-        });
-    }
-    const topGas = document.getElementById('topGasolinera');
-    if (topGas) topGas.textContent = mejorGasolineraTexto;
-
-    let mejorVehiculoTexto = "Sin datos";
-    let minConsumoGlobal = Infinity;
-    Object.keys(baseDatos).forEach(nomVehiculo => {
-        const regs = baseDatos[nomVehiculo].registros || [];
-        if (regs.length > 0) {
-            let totalL = 0;
-            let totalKm = 0;
-            regs.forEach(r => {
-                totalL += parseFloat(r.litros) || 0;
-                totalKm += parseFloat(r.kmHechos) || 0;
-            });
-            if(totalKm > 0) {
-                const conGlobal = (totalL / totalKm) * 100;
-                if (conGlobal < minConsumoGlobal) {
-                    minConsumoGlobal = conGlobal;
-                    mejorVehiculoTexto = `${nomVehiculo} (${conGlobal.toFixed(2)} L/100)`;
-                }
-            }
-        }
     });
-    const topVeh = document.getElementById('topVehiculo');
-    if (topVeh) topVeh.textContent = mejorVehiculoTexto;
-}
+});
 
-// 8. SUBSISTEMA DE MANTENIMIENTO ESPECÍFICO (Batería, Refrigerante, Neumáticos)
-function actualizarMantenimientoBateria() {
-    const coche = baseDatos[vehiculoActivo];
-    const DURACION_ESTIMADA = 70000;
-    const textEl = document.getElementById('maintBateriaText');
-    const status = document.getElementById('statusBateria');
-    if (!textEl || !status) return;
+
     
-    if (!coche.historialBateria || coche.historialBateria.length === 0) {
-        textEl.textContent = "Sin registros (Est. 70.000 Km)";
-        status.textContent = "Sin datos";
-        return;
-    }
 
-    const ultimoCambio = coche.historialBateria[0];
-    const kmUso = coche.kmActuales - ultimoCambio.kmCambio;
-    const kmRestantes = DURACION_ESTIMADA - kmUso;
-    
-    const fechaInicio = new Date(ultimoCambio.fecha);
-    const hoy = new Date();
-    const mesesUso = Math.floor((hoy - fechaInicio) / (1000 * 60 * 60 * 24 * 30));
-
-    textEl.textContent = `Uso: ${kmUso.toLocaleString()} Km | ${mesesUso} meses`;
-    
-    if (kmRestantes < 5000) {
-        status.textContent = `¡Atención! Quedan ${kmRestantes.toLocaleString()} Km`;
-        status.className = "badge danger";
-    } else {
-        status.textContent = `Salud: ${kmRestantes.toLocaleString()} Km restantes`;
-        status.className = "badge success";
-    }
-}
-
-function registrarCambioBateria() {
-    const coche = baseDatos[vehiculoActivo];
-    const fecha = document.getElementById('fechaCambioBateria').value;
-    if (!fecha) { alert("Selecciona una fecha"); return; }
-    
-    if (!coche.historialBateria) coche.historialBateria = [];
-    coche.historialBateria.unshift({ fecha: fecha, kmCambio: coche.kmActuales });
-    
-    guardarEnStorage();
-    cargarDatosVehiculo();
-    alert("Cambio de batería registrado.");
-}
-
-function registrarCambioRefrigerante() {
-    const coche = baseDatos[vehiculoActivo];
-    const fecha = document.getElementById('fechaCambioRefrigerante').value;
-    if (!fecha) { alert("Selecciona una fecha"); return; }
-    
-    if (!coche.historialRefrigerante) coche.historialRefrigerante = [];
-    coche.historialRefrigerante.unshift({ fecha: fecha, kmCambio: coche.kmActuales });
-    
-    guardarEnStorage();
-    cargarDatosVehiculo();
-    alert("Cambio de refrigerante registrado.");
-}
-
-function actualizarMantenimientoRefrigerante() {
-    const coche = baseDatos[vehiculoActivo];
-    const DURACION_KM = 40000;
-    const DURACION_MESES = 24;
-    
-    const textEl = document.getElementById('maintRefrigeranteText');
-    const statusEl = document.getElementById('statusRefrigerante');
-    if (!textEl || !statusEl) return;
-    
-    if (!coche.historialRefrigerante || coche.historialRefrigerante.length === 0) {
-        textEl.textContent = "Sin registros (Est. 40.000 Km / 2 años)";
-        statusEl.textContent = "Sin datos";
-        return;
-    }
-
-    const ultimoCambio = coche.historialRefrigerante[0];
-    const kmUso = coche.kmActuales - ultimoCambio.kmCambio;
-    const fechaInicio = new Date(ultimoCambio.fecha);
-    const hoy = new Date();
-    const mesesUso = Math.floor((hoy - fechaInicio) / (1000 * 60 * 60 * 24 * 30));
-
-    textEl.textContent = `Uso: ${kmUso.toLocaleString()} Km | ${mesesUso} meses`;
-    
-    if (kmUso >= (DURACION_KM - 3000) || mesesUso >= (DURACION_MESES - 2)) {
-        statusEl.textContent = `¡Atención! Próximo mantenimiento`;
-        statusEl.className = "badge danger";
-    } else {
-        statusEl.textContent = `En buen estado`;
-        statusEl.className = "badge success";
-    }
-}
-
-function registrarCambioNeumatico() {
-    const coche = baseDatos[vehiculoActivo];
-    const tipo = document.getElementById('tipoNeumaticoCambio').value;
-    const fecha = document.getElementById('fechaCambioNeumatico').value;
-    if (!fecha) { alert("Selecciona una fecha"); return; }
-    
-    const key = (tipo === "Delanteros") ? "historialNeumDel" : "historialNeumTras";
-    if (!coche[key]) coche[key] = [];
-    
-    coche[key].unshift({ fecha: fecha, kmCambio: coche.kmActuales });
-    
-    guardarEnStorage();
-    cargarDatosVehiculo();
-    alert(`Cambio de neumáticos ${tipo} registrado.`);
-}
-
-function actualizarMantenimientoNeumaticos() {
-    const coche = baseDatos[vehiculoActivo];
-    const VIDA_UTIL_KM = 50000;
-    const VIDA_UTIL_MESES = 60;
-    
-    const procesarEje = (key, textId, statusId) => {
-        const hist = coche[key] || [];
-        const textEl = document.getElementById(textId);
-        const statusEl = document.getElementById(statusId);
-        if (!textEl || !statusEl) return;
-        
-        if (hist.length === 0) {
-            textEl.textContent = "Sin registros (Est. 50.000 Km / 5 años)";
-            statusEl.textContent = "Sin datos";
-            return;
-        }
-        
-        const fechaInicio = new Date(hist[0].fecha);
-        const hoy = new Date();
-        const mesesUso = Math.floor((hoy - fechaInicio) / (1000 * 60 * 60 * 24 * 30));
-        const kmUso = coche.kmActuales - hist[0].kmCambio;
-        
-        textEl.textContent = `Uso: ${kmUso.toLocaleString()} Km | ${mesesUso} meses`;
-        
-        if (kmUso >= (VIDA_UTIL_KM - 5000) || mesesUso >= (VIDA_UTIL_MESES - 6)) {
-            statusEl.textContent = `¡Cambio cercano!`;
-            statusEl.className = "badge danger";
-        } else {
-            const saludKm = Math.max(0, 1 - kmUso / VIDA_UTIL_KM);
-            const saludTiempo = Math.max(0, 1 - mesesUso / VIDA_UTIL_MESES);
-            const saludPromedio = Math.round(((saludKm + saludTiempo) / 2) * 100);
-            statusEl.textContent = `Salud: ${saludPromedio}%`;
-            statusEl.className = "badge success";
-        }
-    };
-
-    procesarEje("historialNeumDel", "maintNeumDelText", "statusNeumDel");
-    procesarEje("historialNeumTras", "maintNeumTrasText", "statusNeumTras");
-}
-
-function guardarDesplazamientoEnBD() {
-    const coche = baseDatos[vehiculoActivo];
-    if (!coche) return;
-    coche.diasSemana = parseFloat(document.getElementById('diasSemana').value) || 0;
-    coche.kmDiarios = parseFloat(document.getElementById('kmDiarios').value) || 0;
-    guardarEnStorage();
-}
-
-// 9. INTERFAZ: GRÁFICOS, TEMAS Y PANELES
-function renderizarGrafico(registros) {
-    const el = document.getElementById('graficoCombustible');
-    if (!el) return;
-    const ctx = el.getContext('2d');
-    if (!registros || registros.length === 0) {
-        if (miGrafico) miGrafico.destroy();
-        return;
-    }
-
-    const regsInvertidos = [...registros].reverse();
-    const etiquetasFechas = regsInvertidos.map(r => r.fecha);
-    const datosConsumo = regsInvertidos.map(r => parseFloat(r.consumoMedio));
-    const datosPrecio = regsInvertidos.map(r => parseFloat(r.precioLitro));
-
-    if (miGrafico) miGrafico.destroy();
-
-    miGrafico = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: etiquetasFechas,
-            datasets: [
-                {
-                    label: 'Consumo (L/100km)',
-                    data: datosConsumo,
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    yAxisID: 'yConsumo'
-                },
-                {
-                    label: 'Precio (€/L)',
-                    data: datosPrecio,
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.05)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    yAxisID: 'yPrecio',
-                    borderDash: [5, 5]
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
-            scales: {
-                x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-                yConsumo: { type: 'linear', position: 'left', title: { display: true, text: 'L/100km', font: { size: 11 } } },
-                yPrecio: { type: 'linear', position: 'right', title: { display: true, text: '€/Litro', font: { size: 11 } }, grid: { display: false } }
-            }
-        }
-    });
-}
-
-function toggleDarkMode() {
-    const body = document.body;
-    body.classList.toggle('dark-mode');
-    localStorage.setItem('theme', body.classList.contains('dark-mode') ? 'dark' : 'light');
-}
-
-function toggleForm(id) {
-    const form = document.getElementById(id);
-    if (!form) return;
-    form.classList.toggle('hidden');
-    if (!form.classList.contains('hidden')) {
-        cargarDatosVehiculo(); 
-        const primerInput = form.querySelector('input');
-        if (primerInput) primerInput.focus();
-    }
-}
-
-function toggleAyuda() {
-    const panelA = document.getElementById('panelAyuda');
-    const panelI = document.getElementById('panelInfo');
-    if(!panelA || !panelI) return;
-    panelI.style.display = 'none';
-    panelA.style.display = (panelA.style.display === 'none' || panelA.style.display === '') ? 'block' : 'none';
-}
-
-function toggleInfo() {
-    const panelI = document.getElementById('panelInfo');
-    const panelA = document.getElementById('panelAyuda');
-    if(!panelA || !panelI) return;
-    panelA.style.display = 'none';
-    panelI.style.display = (panelI.style.display === 'none' || panelI.style.display === '') ? 'block' : 'none';
-}
-
-function actualizarReloj() {
-    const el = document.getElementById('fechaHora');
-    if (!el) return;
-    const ahora = new Date();
-    const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-    el.textContent = ahora.toLocaleDateString('es-ES', opciones);
-}
-
-function mostrarNotificacion(mensaje) {
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = mensaje;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
-
-// 10. UTILIDADES E INTERCAMBIO DE DATOS
-function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
-}
-
-function obtenerFechaFormateada() {
-    const hoy = new Date();
-    return `${String(hoy.getDate()).padStart(2, '0')}/${String(hoy.getMonth() + 1).padStart(2, '0')}/${hoy.getFullYear()}`;
-}
-
-function guardarEnStorage() {
-    localStorage.setItem('app_combustible_data', JSON.stringify(baseDatos));
-}
-
-function exportarDatos() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({baseDatos, gasolineras}));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "backup_combustible.json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-}
-
-function importarDatos(event) {
-    const input = event.target;
-    const reader = new FileReader();
-    reader.onload = function() {
-        try {
-            const importado = JSON.parse(reader.result);
-            if (importado.baseDatos && importado.gasolineras) {
-                baseDatos = importado.baseDatos;
-                gasolineras = importado.gasolineras;
-                localStorage.setItem('app_combustible_data', JSON.stringify(baseDatos));
-                localStorage.setItem('app_gasolineras_data', JSON.stringify(gasolineras));
-                vehiculoActivo = Object.keys(baseDatos)[0] || "MG3 Hybrid +";
-                localStorage.setItem('app_vehiculo_activo', vehiculoActivo);
-                inicializar();
-                alert("¡Datos importados con éxito!");
-            } else { alert("El archivo JSON no tiene el formato correcto."); }
-        } catch (e) { alert("Error al leer el archivo JSON."); }
-    };
-    if(input.files[0]) reader.readAsText(input.files[0]);
-}
 </script>
-
 </body>
 </html>
